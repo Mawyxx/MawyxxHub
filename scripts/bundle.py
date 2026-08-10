@@ -97,6 +97,19 @@ def main() -> None:
         alt = OUT.parent / name
         alt.write_text(text, encoding="utf-8", newline="\n")
         print(f"Wrote {alt}")
+
+    # Single-file runner: hub + demo, one HttpGet (defeats executor URL cache of FakeDemo)
+    demo_path = Path(__file__).resolve().parent.parent / "examples" / "demo_inline.lua"
+    demo = demo_path.read_text(encoding="utf-8")
+    run_parts = parts[:-2]  # drop `return __require("init")` and trailing empty
+    run_parts.append("")
+    run_parts.append("-- ===== INLINE DEMO =====")
+    for line in demo.splitlines():
+        run_parts.append(line)
+    run_parts.append("")
+    run_out = OUT.parent / "___RUN_HSV.lua"
+    run_out.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
+    print(f"Wrote {run_out} ({run_out.stat().st_size} bytes)")
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes, {len(files)} modules, leftover={leftover})")
 
 
