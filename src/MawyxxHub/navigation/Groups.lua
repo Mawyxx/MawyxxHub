@@ -23,7 +23,7 @@ function Groups.render(hub, group, parent, layoutOrder, elements)
 		Size = UDim2.new(1, 0, 0, 0),
 		BackgroundColor3 = config.colors.bg,
 		BorderSizePixel = 0,
-		ClipsDescendants = true, -- keep stroke clean; padding keeps controls inside
+		ClipsDescendants = false, -- never clip toggles/sliders at the card edge
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = layoutOrder or 0,
 	})

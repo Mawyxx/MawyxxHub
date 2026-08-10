@@ -42,7 +42,7 @@ function Toggle.build(hub, element)
 	-- Room for UIStroke so the pill is not clipped by the card edge
 	Create("UIPadding", {
 		Parent = row,
-		PaddingRight = UDim.new(0, 2),
+		PaddingRight = UDim.new(0, 4),
 	})
 	Corner(toggleBtn, 11)
 	Stroke(toggleBtn, config.colors.borderSoft, 1)

@@ -1,4 +1,4 @@
--- RightShift toggles hub. Relayout after open (AbsoluteSize was 0 while hidden).
+-- RightShift toggles hub. Always relayout after open so columns fit.
 
 local Shortcuts = {}
 
@@ -9,10 +9,15 @@ function Shortcuts.setup(hub)
 		startHidden = true
 	end
 
+	local w = hub.config.window.width
+	local h = hub.config.window.height
+
 	local visible = not startHidden
 	hub.window.Visible = visible
-	if not visible then
-		hub.window.Size = UDim2.new(0, hub.config.window.width, 0, 0)
+	if visible then
+		hub.window.Size = UDim2.new(0, w, 0, h)
+	else
+		hub.window.Size = UDim2.new(0, w, 0, 0)
 	end
 
 	local function runLayouts()
@@ -29,15 +34,14 @@ function Shortcuts.setup(hub)
 		visible = open
 		if open then
 			hub.window.Visible = true
-			hub:tween(hub.window, {
-				Size = UDim2.new(0, hub.config.window.width, 0, hub.config.window.height),
-			})
+			-- Set final size immediately so AbsoluteSize is correct for layout
+			hub.window.Size = UDim2.new(0, w, 0, h)
+			runLayouts()
 			task.defer(runLayouts)
 			task.delay(0.05, runLayouts)
-			task.delay(0.15, runLayouts)
 		else
 			hub:tween(hub.window, {
-				Size = UDim2.new(0, hub.config.window.width, 0, 0),
+				Size = UDim2.new(0, w, 0, 0),
 			})
 			task.delay(0.2, function()
 				if not visible and not hub._destroyed then

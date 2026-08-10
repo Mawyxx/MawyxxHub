@@ -1,5 +1,5 @@
 --[[
-	MawyxxHub demo — loads framework from GitHub and builds a fake menu.
+	MawyxxHub demo — loads latest framework from GitHub.
 
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua"))()
 ]]
@@ -14,15 +14,22 @@ local function httpGet(url)
 	return game:GetService("HttpService"):GetAsync(url)
 end
 
+-- timestamp query only avoids CDN/executor cache of dist (not a version pin)
 local MawyxxHub = loadstring(httpGet(
-	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua"
+	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua?" .. tostring(os.clock())
 ))()
 
 local hub = MawyxxHub.new({
-	window = { title = "MawyxxHub Demo", width = 1064, height = 580, sidebarWidth = 150 },
+	window = { title = "MawyxxHub Demo", width = 920, height = 600, sidebarWidth = 156 },
 	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
 	startHidden = true,
-	group = { columns = 2, gap = 7, gutter = 12, padding = 12, innerPadding = 10 },
+	group = {
+		columns = 2,
+		gap = 10,
+		gutter = 14,
+		padding = 14,
+		innerPadding = 12,
+	},
 })
 
 local combat = hub:addTab("Combat")

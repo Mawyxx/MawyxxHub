@@ -123,13 +123,13 @@ __modules["adapters/RobloxTween"] = function(__require)
 end
 
 __modules["config/Defaults"] = function(__require)
-	-- Hierarchy config: Tab (sidebar) → Group → Controls.
+	-- Sweet-spot defaults: compact but no clipping.
 	
 	local Defaults = {
 		window = {
-			width = 1064,
-			height = 580,
-			sidebarWidth = 150,
+			width = 920,
+			height = 600,
+			sidebarWidth = 156,
 			title = "MawyxxHub",
 		},
 		colors = {
@@ -162,8 +162,8 @@ __modules["config/Defaults"] = function(__require)
 		startHidden = true,
 		group = {
 			columns = 2,
-			gap = 7, -- vertical between groups (halved)
-			gutter = 12, -- horizontal between columns (halved)
+			gap = 10,
+			gutter = 14,
 			padding = 14,
 			innerPadding = 12,
 			headerHeight = 36,
@@ -708,7 +708,7 @@ __modules["controls/Toggle"] = function(__require)
 		-- Room for UIStroke so the pill is not clipped by the card edge
 		Create("UIPadding", {
 			Parent = row,
-			PaddingRight = UDim.new(0, 2),
+			PaddingRight = UDim.new(0, 4),
 		})
 		Corner(toggleBtn, 11)
 		Stroke(toggleBtn, config.colors.borderSoft, 1)
@@ -1222,7 +1222,7 @@ __modules["navigation/Groups"] = function(__require)
 			Size = UDim2.new(1, 0, 0, 0),
 			BackgroundColor3 = config.colors.bg,
 			BorderSizePixel = 0,
-			ClipsDescendants = true, -- keep stroke clean; padding keeps controls inside
+			ClipsDescendants = false, -- never clip toggles/sliders at the card edge
 			AutomaticSize = Enum.AutomaticSize.Y,
 			LayoutOrder = layoutOrder or 0,
 		})
@@ -1966,7 +1966,7 @@ __modules["window/Drag"] = function(__require)
 end
 
 __modules["window/Shortcuts"] = function(__require)
-	-- RightShift toggles hub. Relayout after open (AbsoluteSize was 0 while hidden).
+	-- RightShift toggles hub. Always relayout after open so columns fit.
 	
 	local Shortcuts = {}
 	
@@ -1977,10 +1977,15 @@ __modules["window/Shortcuts"] = function(__require)
 			startHidden = true
 		end
 	
+		local w = hub.config.window.width
+		local h = hub.config.window.height
+	
 		local visible = not startHidden
 		hub.window.Visible = visible
-		if not visible then
-			hub.window.Size = UDim2.new(0, hub.config.window.width, 0, 0)
+		if visible then
+			hub.window.Size = UDim2.new(0, w, 0, h)
+		else
+			hub.window.Size = UDim2.new(0, w, 0, 0)
 		end
 	
 		local function runLayouts()
@@ -1997,15 +2002,14 @@ __modules["window/Shortcuts"] = function(__require)
 			visible = open
 			if open then
 				hub.window.Visible = true
-				hub:tween(hub.window, {
-					Size = UDim2.new(0, hub.config.window.width, 0, hub.config.window.height),
-				})
+				-- Set final size immediately so AbsoluteSize is correct for layout
+				hub.window.Size = UDim2.new(0, w, 0, h)
+				runLayouts()
 				task.defer(runLayouts)
 				task.delay(0.05, runLayouts)
-				task.delay(0.15, runLayouts)
 			else
 				hub:tween(hub.window, {
-					Size = UDim2.new(0, hub.config.window.width, 0, 0),
+					Size = UDim2.new(0, w, 0, 0),
 				})
 				task.delay(0.2, function()
 					if not visible and not hub._destroyed then

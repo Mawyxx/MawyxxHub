@@ -1,10 +1,10 @@
--- Hierarchy config: Tab (sidebar) → Group → Controls.
+-- Sweet-spot defaults: compact but no clipping.
 
 local Defaults = {
 	window = {
-		width = 1064,
-		height = 580,
-		sidebarWidth = 150,
+		width = 920,
+		height = 600,
+		sidebarWidth = 156,
 		title = "MawyxxHub",
 	},
 	colors = {
@@ -37,8 +37,8 @@ local Defaults = {
 	startHidden = true,
 	group = {
 		columns = 2,
-		gap = 7, -- vertical between groups (halved)
-		gutter = 12, -- horizontal between columns (halved)
+		gap = 10,
+		gutter = 14,
 		padding = 14,
 		innerPadding = 12,
 		headerHeight = 36,
