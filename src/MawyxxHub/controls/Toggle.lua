@@ -45,7 +45,8 @@ function Toggle.build(hub, element)
 		PaddingRight = UDim.new(0, 4),
 	})
 	Corner(toggleBtn, 11)
-	Stroke(toggleBtn, config.colors.border, 1)
+	-- Soft edge instead of hard stroke
+	Stroke(toggleBtn, config.colors.borderSoft, 1, 0.55)
 
 	local knob = Create("Frame", {
 		Parent = toggleBtn,

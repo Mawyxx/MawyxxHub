@@ -28,7 +28,7 @@ function Button.build(hub, element)
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 	})
-	Stroke(btn, config.colors.border, 1)
+	Stroke(btn, config.colors.borderSoft, 1, 0.45)
 	hub._pageMaid:Connect(btn.MouseEnter, function()
 		hub:tween(btn, { BackgroundColor3 = controlHover })
 	end)

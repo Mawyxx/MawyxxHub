@@ -135,7 +135,7 @@ __modules["adapters/RobloxTween"] = function(__require)
 end
 
 __modules["config/Defaults"] = function(__require)
-	-- Exact QuantHub palette (user-specified hex).
+	-- QuantHub-inspired palette: layered depth, muted accent, clean sans.
 	
 	local Defaults = {
 		window = {
@@ -145,29 +145,27 @@ __modules["config/Defaults"] = function(__require)
 			title = "MawyxxHub",
 		},
 		colors = {
-			-- #111111 — window / sidebar / page chrome
+			-- Chrome (deepest)
 			bg = Color3.fromRGB(17, 17, 17),
-			-- Group cards sit slightly above chrome (same family as #111)
-			surface = Color3.fromRGB(17, 17, 17),
-			surface2 = Color3.fromRGB(17, 17, 17),
-			surfaceHover = Color3.fromRGB(28, 28, 28),
-			-- #000000 — search, dropdown, buttons, slider tracks, off toggles
-			control = Color3.fromRGB(0, 0, 0),
-			controlHover = Color3.fromRGB(22, 22, 22),
-			border = Color3.fromRGB(40, 40, 40),
-			borderSoft = Color3.fromRGB(28, 28, 28),
-			-- #FFFFFF — primary labels
+			-- Group / panel lift
+			surface = Color3.fromRGB(22, 22, 22),
+			surface2 = Color3.fromRGB(28, 28, 28),
+			surfaceHover = Color3.fromRGB(34, 34, 34),
+			-- Controls sit near-black, not pure #000 (less harsh)
+			control = Color3.fromRGB(10, 10, 10),
+			controlHover = Color3.fromRGB(26, 26, 26),
+			border = Color3.fromRGB(36, 36, 36),
+			borderSoft = Color3.fromRGB(30, 30, 30),
 			text = Color3.fromRGB(255, 255, 255),
-			-- #A0A0A0 — inactive tabs, slider values, secondary labels
 			textSoft = Color3.fromRGB(160, 160, 160),
-			textMuted = Color3.fromRGB(160, 160, 160),
-			-- #7B52FF — accent (fills, on-toggles, brand, active tab)
-			purple = Color3.fromRGB(123, 82, 255),
-			purpleHover = Color3.fromRGB(143, 110, 255),
-			purpleDark = Color3.fromRGB(95, 60, 210),
+			textMuted = Color3.fromRGB(120, 120, 120),
+			-- Muted lavender accent (less neon than raw #7B52FF)
+			purple = Color3.fromRGB(118, 100, 200),
+			purpleHover = Color3.fromRGB(138, 120, 215),
+			purpleDark = Color3.fromRGB(90, 74, 160),
 			white = Color3.fromRGB(255, 255, 255),
 		},
-		font = Enum.Font.Code,
+		font = Enum.Font.Gotham,
 		animations = true,
 		settingsTable = "MawyxxHubSettings",
 		toggleKey = Enum.KeyCode.RightControl,
@@ -296,7 +294,7 @@ __modules["controls/Button"] = function(__require)
 			BorderSizePixel = 0,
 			AutoButtonColor = false,
 		})
-		Stroke(btn, config.colors.border, 1)
+		Stroke(btn, config.colors.borderSoft, 1, 0.45)
 		hub._pageMaid:Connect(btn.MouseEnter, function()
 			hub:tween(btn, { BackgroundColor3 = controlHover })
 		end)
@@ -367,15 +365,15 @@ __modules["controls/ColorPicker"] = function(__require)
 			Parent = row,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, 0, 0.5, 0),
-			Size = UDim2.new(0, 26, 0, 22),
+			Size = UDim2.new(0, 16, 0, 16),
 			BackgroundColor3 = color,
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
 			ZIndex = 5,
 		})
-		Stroke(swatch, config.colors.border, 1)
-		Corner(swatch, 3)
+		Stroke(swatch, config.colors.borderSoft, 1, 0.4)
+		Corner(swatch, 2)
 	
 		local panelW = PANEL_PAD + SV + GAP + HUE_W + PANEL_PAD
 		local panelH = PANEL_PAD + 18 + GAP + SV + GAP + PREVIEW_H + GAP + BTN_H + PANEL_PAD
@@ -990,38 +988,39 @@ __modules["controls/Slider"] = function(__require)
 		hub.deps.settings.Set(hub.settings, flag, val)
 	
 		local row = Create("Frame", {
-			Size = UDim2.new(1, 0, 0, 50),
+			Size = UDim2.new(1, 0, 0, 48),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 		})
 	
 		local label = TextLabel(row, element.label, 14, config.colors.text, config.font)
-		label.Size = UDim2.new(0.5, 0, 0, 22)
+		label.Size = UDim2.new(1, 0, 0, 20)
 		label.TextXAlignment = Enum.TextXAlignment.Left
-	
-		local valueLabel = TextLabel(row, tostring(val) .. "/" .. tostring(max), 13, config.colors.textSoft, config.font)
-		valueLabel.Position = UDim2.new(0.5, 0, 0, 0)
-		valueLabel.Size = UDim2.new(0.5, -2, 0, 22)
-		valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-		valueLabel.TextTruncate = Enum.TextTruncate.AtEnd
 	
 		local track = Create("TextButton", {
 			Parent = row,
-			Position = UDim2.new(0, 0, 0, 28),
+			Position = UDim2.new(0, 0, 0, 26),
 			Size = UDim2.new(1, 0, 0, 16),
 			BackgroundColor3 = config.colors.control or config.colors.surface2,
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
 		})
-		Stroke(track, config.colors.border, 1)
+		Stroke(track, config.colors.borderSoft, 1, 0.5)
 	
 		local fill = Create("Frame", {
 			Parent = track,
 			Size = UDim2.new((val - min) / math.max(max - min, 1e-9), 0, 1, 0),
 			BackgroundColor3 = config.colors.purple,
 			BorderSizePixel = 0,
+			ZIndex = 1,
 		})
+	
+		-- Value centered in track (QuantHub-style)
+		local valueLabel = TextLabel(track, tostring(val) .. " / " .. tostring(max), 11, config.colors.textSoft, config.font)
+		valueLabel.Size = UDim2.fromScale(1, 1)
+		valueLabel.TextXAlignment = Enum.TextXAlignment.Center
+		valueLabel.ZIndex = 2
 	
 		local dragging = false
 	
@@ -1032,7 +1031,7 @@ __modules["controls/Slider"] = function(__require)
 			val = newVal
 			hub.deps.settings.Set(hub.settings, flag, val)
 			fill.Size = UDim2.new((val - min) / math.max(max - min, 1e-9), 0, 1, 0)
-			valueLabel.Text = tostring(val) .. "/" .. tostring(max)
+			valueLabel.Text = tostring(val) .. " / " .. tostring(max)
 			if fireCallback and element.callback then
 				element.callback(val)
 			end
@@ -1128,7 +1127,8 @@ __modules["controls/Toggle"] = function(__require)
 			PaddingRight = UDim.new(0, 4),
 		})
 		Corner(toggleBtn, 11)
-		Stroke(toggleBtn, config.colors.border, 1)
+		-- Soft edge instead of hard stroke
+		Stroke(toggleBtn, config.colors.borderSoft, 1, 0.55)
 	
 		local knob = Create("Frame", {
 			Parent = toggleBtn,
@@ -2355,7 +2355,7 @@ __modules["visual/Create"] = function(__require)
 			Text = text,
 			TextColor3 = color or Color3.fromRGB(224, 224, 226),
 			TextSize = size or 14,
-			Font = font or Enum.Font.Code,
+			Font = font or Enum.Font.Gotham,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			BorderSizePixel = 0,
@@ -2378,7 +2378,6 @@ __modules["window/Build"] = function(__require)
 	
 	local Create = CreateMod.Create
 	local Stroke = CreateMod.Stroke
-	local Corner = CreateMod.Corner
 	local TextLabel = CreateMod.TextLabel
 	
 	local Build = {}
@@ -2409,11 +2408,12 @@ __modules["window/Build"] = function(__require)
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.new(0, config.window.width, 0, config.window.height),
 			BackgroundColor3 = config.colors.bg,
+			BackgroundTransparency = 0.04,
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
 		})
 		hub.window = window
-		Stroke(window, config.colors.border, 1)
+		Stroke(window, config.colors.border, 1, 0.35)
 	
 		local sidebar = Create("Frame", {
 			Name = "Sidebar",
@@ -2503,28 +2503,30 @@ __modules["window/Build"] = function(__require)
 		local searchEnabled = config.search == nil or config.search.enabled ~= false
 		local placeholder = (config.search and config.search.placeholder) or "Search"
 	
-		-- Close reserves right side; search is centered in the remaining topbar space
-		local closeReserve = 46
+		-- Quiet search strip (no box) — icon + left-aligned field
+		local closeReserve = 40
+		local searchIcon = TextLabel(topbar, "⌕", 14, config.colors.textMuted, config.font)
+		searchIcon.Position = UDim2.new(0, 14, 0, 0)
+		searchIcon.Size = UDim2.new(0, 18, 1, 0)
+		searchIcon.TextXAlignment = Enum.TextXAlignment.Left
+	
 		local search = Create("TextBox", {
 			Parent = topbar,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, -math.floor(closeReserve / 2), 0.5, 0),
-			Size = UDim2.new(1, -(closeReserve + 24), 0, 34),
-			BackgroundColor3 = config.colors.control or config.colors.surface,
+			Position = UDim2.new(0, 34, 0, 0),
+			Size = UDim2.new(1, -(closeReserve + 40), 1, 0),
+			BackgroundTransparency = 1,
 			Text = "",
 			PlaceholderText = searchEnabled and placeholder or "Search disabled",
 			PlaceholderColor3 = config.colors.textMuted,
 			TextColor3 = config.colors.text,
 			TextSize = 14,
-			-- Code font has poor Cyrillic; Gotham accepts Russian input in TextBox
-			Font = Enum.Font.Gotham,
+			Font = config.font,
 			ClearTextOnFocus = false,
 			BorderSizePixel = 0,
-			TextXAlignment = Enum.TextXAlignment.Center,
+			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			TextEditable = searchEnabled,
 		})
-		Stroke(search, config.colors.border, 1)
 		hub.searchBox = search
 	
 		if searchEnabled then
@@ -2536,39 +2538,28 @@ __modules["window/Build"] = function(__require)
 			hub._maid:Connect(search.FocusLost, syncSearch)
 		end
 	
-		local closeRed = Color3.fromRGB(220, 55, 60)
-		local closeRedSoft = Color3.fromRGB(48, 14, 16)
-		local closeRedHover = Color3.fromRGB(255, 72, 78)
 		local closeBtn = Create("TextButton", {
 			Name = "Close",
 			Parent = topbar,
 			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -10, 0.5, 0),
-			Size = UDim2.fromOffset(30, 30),
-			BackgroundColor3 = closeRedSoft,
+			Position = UDim2.new(1, -8, 0.5, 0),
+			Size = UDim2.fromOffset(28, 28),
+			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			Text = "×",
-			TextColor3 = closeRed,
-			TextSize = 22,
+			TextColor3 = config.colors.textMuted,
+			TextSize = 20,
 			Font = config.font,
 			AutoButtonColor = false,
 			ZIndex = 5,
 		})
-		Corner(closeBtn, 6)
-		Stroke(closeBtn, Color3.fromRGB(160, 40, 48), 1)
 		hub.closeButton = closeBtn
 	
 		hub._maid:Connect(closeBtn.MouseEnter, function()
-			hub:tween(closeBtn, {
-				BackgroundColor3 = Color3.fromRGB(70, 18, 22),
-				TextColor3 = closeRedHover,
-			})
+			hub:tween(closeBtn, { TextColor3 = config.colors.text })
 		end)
 		hub._maid:Connect(closeBtn.MouseLeave, function()
-			hub:tween(closeBtn, {
-				BackgroundColor3 = closeRedSoft,
-				TextColor3 = closeRed,
-			})
+			hub:tween(closeBtn, { TextColor3 = config.colors.textMuted })
 		end)
 		hub._maid:Connect(closeBtn.MouseButton1Click, function()
 			if hub._setOpen then
@@ -2603,22 +2594,43 @@ __modules["window/Build"] = function(__require)
 			Parent = window,
 			Position = UDim2.new(0, sideW, 1, -26),
 			Size = UDim2.new(1, -sideW, 0, 26),
-			BackgroundColor3 = config.colors.bg,
+			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 		})
 		Create("Frame", {
 			Parent = footer,
 			Position = UDim2.new(0, 0, 0, 0),
 			Size = UDim2.new(1, 0, 0, 1),
-			BackgroundColor3 = config.colors.border,
+			BackgroundColor3 = config.colors.borderSoft,
+			BackgroundTransparency = 0.35,
 			BorderSizePixel = 0,
 		})
 	
-		local footerText = TextLabel(footer, brand.footer or "Mawyxx / Hub", 11, config.colors.textMuted, config.font)
-		footerText.AnchorPoint = Vector2.new(0.5, 0)
-		footerText.Position = UDim2.new(0.5, 0, 0, 2)
-		footerText.Size = UDim2.new(0, 140, 0, 22)
+		local footerText = TextLabel(footer, brand.footer or "Mawyxx / Hub", 10, config.colors.textMuted, config.font)
+		footerText.AnchorPoint = Vector2.new(0.5, 0.5)
+		footerText.Position = UDim2.new(0.5, 0, 0.5, 0)
+		footerText.Size = UDim2.new(0, 160, 0, 18)
 		footerText.TextXAlignment = Enum.TextXAlignment.Center
+		footerText.TextTransparency = 0.25
+	
+		-- Quiet resize hint (wired in Drag.setup)
+		local resizeGrip = Create("TextButton", {
+			Name = "ResizeGrip",
+			Parent = window,
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -4, 1, -2),
+			Size = UDim2.fromOffset(16, 16),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Text = "⌟",
+			TextColor3 = config.colors.textMuted,
+			TextTransparency = 0.35,
+			TextSize = 14,
+			Font = config.font,
+			AutoButtonColor = false,
+			ZIndex = 20,
+		})
+		hub.resizeGrip = resizeGrip
 	
 		hub.pages = {}
 		hub.searchQuery = ""
@@ -2720,14 +2732,16 @@ __modules["window/CustomCursor"] = function(__require)
 end
 
 __modules["window/Drag"] = function(__require)
-	-- Window drag via topbar (uses IInputService port).
+	-- Window drag via topbar + corner resize (uses IInputService port).
 	
 	local Drag = {}
 	
 	function Drag.setup(hub)
 		local dragging = false
-		local dragStart, startPos
+		local resizing = false
+		local dragStart, startPos, startSize
 		local input = hub.deps.input
+		local minW, minH = 640, 420
 	
 		hub._maid:Connect(hub.topbar.InputBegan, function(inp)
 			if inp.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -2743,8 +2757,28 @@ __modules["window/Drag"] = function(__require)
 			end
 		end)
 	
+		local grip = hub.resizeGrip
+		if grip then
+			hub._maid:Connect(grip.MouseButton1Down, function()
+				resizing = true
+				dragStart = input.GetMouseLocation()
+				startSize = hub.window.AbsoluteSize
+			end)
+			hub._maid:Connect(grip.MouseEnter, function()
+				hub:tween(grip, { TextTransparency = 0.05 })
+			end)
+			hub._maid:Connect(grip.MouseLeave, function()
+				if not resizing then
+					hub:tween(grip, { TextTransparency = 0.35 })
+				end
+			end)
+		end
+	
 		hub._maid:Connect(input.InputChanged, function(inp)
-			if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+			if inp.UserInputType ~= Enum.UserInputType.MouseMovement then
+				return
+			end
+			if dragging then
 				local delta = inp.Position - dragStart
 				hub.window.Position = UDim2.new(
 					startPos.X.Scale,
@@ -2752,6 +2786,23 @@ __modules["window/Drag"] = function(__require)
 					startPos.Y.Scale,
 					startPos.Y.Offset + delta.Y
 				)
+			elseif resizing then
+				local m = input.GetMouseLocation()
+				local dw = m.X - dragStart.X
+				local dh = m.Y - dragStart.Y
+				local w = math.max(minW, startSize.X + dw)
+				local h = math.max(minH, startSize.Y + dh)
+				hub.window.Size = UDim2.fromOffset(w, h)
+			end
+		end)
+	
+		hub._maid:Connect(input.InputEnded, function(inp)
+			if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+				dragging = false
+				resizing = false
+				if grip then
+					grip.TextTransparency = 0.35
+				end
 			end
 		end)
 	end

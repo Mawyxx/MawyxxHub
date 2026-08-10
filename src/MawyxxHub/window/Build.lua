@@ -4,7 +4,6 @@ local CreateMod = require(script.Parent.Parent.visual.Create)
 
 local Create = CreateMod.Create
 local Stroke = CreateMod.Stroke
-local Corner = CreateMod.Corner
 local TextLabel = CreateMod.TextLabel
 
 local Build = {}
@@ -35,11 +34,12 @@ function Build.window(hub)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(0, config.window.width, 0, config.window.height),
 		BackgroundColor3 = config.colors.bg,
+		BackgroundTransparency = 0.04,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
 	})
 	hub.window = window
-	Stroke(window, config.colors.border, 1)
+	Stroke(window, config.colors.border, 1, 0.35)
 
 	local sidebar = Create("Frame", {
 		Name = "Sidebar",
@@ -129,28 +129,30 @@ function Build.window(hub)
 	local searchEnabled = config.search == nil or config.search.enabled ~= false
 	local placeholder = (config.search and config.search.placeholder) or "Search"
 
-	-- Close reserves right side; search is centered in the remaining topbar space
-	local closeReserve = 46
+	-- Quiet search strip (no box) — icon + left-aligned field
+	local closeReserve = 40
+	local searchIcon = TextLabel(topbar, "⌕", 14, config.colors.textMuted, config.font)
+	searchIcon.Position = UDim2.new(0, 14, 0, 0)
+	searchIcon.Size = UDim2.new(0, 18, 1, 0)
+	searchIcon.TextXAlignment = Enum.TextXAlignment.Left
+
 	local search = Create("TextBox", {
 		Parent = topbar,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, -math.floor(closeReserve / 2), 0.5, 0),
-		Size = UDim2.new(1, -(closeReserve + 24), 0, 34),
-		BackgroundColor3 = config.colors.control or config.colors.surface,
+		Position = UDim2.new(0, 34, 0, 0),
+		Size = UDim2.new(1, -(closeReserve + 40), 1, 0),
+		BackgroundTransparency = 1,
 		Text = "",
 		PlaceholderText = searchEnabled and placeholder or "Search disabled",
 		PlaceholderColor3 = config.colors.textMuted,
 		TextColor3 = config.colors.text,
 		TextSize = 14,
-		-- Code font has poor Cyrillic; Gotham accepts Russian input in TextBox
-		Font = Enum.Font.Gotham,
+		Font = config.font,
 		ClearTextOnFocus = false,
 		BorderSizePixel = 0,
-		TextXAlignment = Enum.TextXAlignment.Center,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Center,
 		TextEditable = searchEnabled,
 	})
-	Stroke(search, config.colors.border, 1)
 	hub.searchBox = search
 
 	if searchEnabled then
@@ -162,39 +164,28 @@ function Build.window(hub)
 		hub._maid:Connect(search.FocusLost, syncSearch)
 	end
 
-	local closeRed = Color3.fromRGB(220, 55, 60)
-	local closeRedSoft = Color3.fromRGB(48, 14, 16)
-	local closeRedHover = Color3.fromRGB(255, 72, 78)
 	local closeBtn = Create("TextButton", {
 		Name = "Close",
 		Parent = topbar,
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -10, 0.5, 0),
-		Size = UDim2.fromOffset(30, 30),
-		BackgroundColor3 = closeRedSoft,
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(28, 28),
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		Text = "×",
-		TextColor3 = closeRed,
-		TextSize = 22,
+		TextColor3 = config.colors.textMuted,
+		TextSize = 20,
 		Font = config.font,
 		AutoButtonColor = false,
 		ZIndex = 5,
 	})
-	Corner(closeBtn, 6)
-	Stroke(closeBtn, Color3.fromRGB(160, 40, 48), 1)
 	hub.closeButton = closeBtn
 
 	hub._maid:Connect(closeBtn.MouseEnter, function()
-		hub:tween(closeBtn, {
-			BackgroundColor3 = Color3.fromRGB(70, 18, 22),
-			TextColor3 = closeRedHover,
-		})
+		hub:tween(closeBtn, { TextColor3 = config.colors.text })
 	end)
 	hub._maid:Connect(closeBtn.MouseLeave, function()
-		hub:tween(closeBtn, {
-			BackgroundColor3 = closeRedSoft,
-			TextColor3 = closeRed,
-		})
+		hub:tween(closeBtn, { TextColor3 = config.colors.textMuted })
 	end)
 	hub._maid:Connect(closeBtn.MouseButton1Click, function()
 		if hub._setOpen then
@@ -229,22 +220,43 @@ function Build.window(hub)
 		Parent = window,
 		Position = UDim2.new(0, sideW, 1, -26),
 		Size = UDim2.new(1, -sideW, 0, 26),
-		BackgroundColor3 = config.colors.bg,
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 	})
 	Create("Frame", {
 		Parent = footer,
 		Position = UDim2.new(0, 0, 0, 0),
 		Size = UDim2.new(1, 0, 0, 1),
-		BackgroundColor3 = config.colors.border,
+		BackgroundColor3 = config.colors.borderSoft,
+		BackgroundTransparency = 0.35,
 		BorderSizePixel = 0,
 	})
 
-	local footerText = TextLabel(footer, brand.footer or "Mawyxx / Hub", 11, config.colors.textMuted, config.font)
-	footerText.AnchorPoint = Vector2.new(0.5, 0)
-	footerText.Position = UDim2.new(0.5, 0, 0, 2)
-	footerText.Size = UDim2.new(0, 140, 0, 22)
+	local footerText = TextLabel(footer, brand.footer or "Mawyxx / Hub", 10, config.colors.textMuted, config.font)
+	footerText.AnchorPoint = Vector2.new(0.5, 0.5)
+	footerText.Position = UDim2.new(0.5, 0, 0.5, 0)
+	footerText.Size = UDim2.new(0, 160, 0, 18)
 	footerText.TextXAlignment = Enum.TextXAlignment.Center
+	footerText.TextTransparency = 0.25
+
+	-- Quiet resize hint (wired in Drag.setup)
+	local resizeGrip = Create("TextButton", {
+		Name = "ResizeGrip",
+		Parent = window,
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -4, 1, -2),
+		Size = UDim2.fromOffset(16, 16),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Text = "⌟",
+		TextColor3 = config.colors.textMuted,
+		TextTransparency = 0.35,
+		TextSize = 14,
+		Font = config.font,
+		AutoButtonColor = false,
+		ZIndex = 20,
+	})
+	hub.resizeGrip = resizeGrip
 
 	hub.pages = {}
 	hub.searchQuery = ""

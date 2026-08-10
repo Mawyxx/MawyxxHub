@@ -20,38 +20,39 @@ function Slider.build(hub, element)
 	hub.deps.settings.Set(hub.settings, flag, val)
 
 	local row = Create("Frame", {
-		Size = UDim2.new(1, 0, 0, 50),
+		Size = UDim2.new(1, 0, 0, 48),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 	})
 
 	local label = TextLabel(row, element.label, 14, config.colors.text, config.font)
-	label.Size = UDim2.new(0.5, 0, 0, 22)
+	label.Size = UDim2.new(1, 0, 0, 20)
 	label.TextXAlignment = Enum.TextXAlignment.Left
-
-	local valueLabel = TextLabel(row, tostring(val) .. "/" .. tostring(max), 13, config.colors.textSoft, config.font)
-	valueLabel.Position = UDim2.new(0.5, 0, 0, 0)
-	valueLabel.Size = UDim2.new(0.5, -2, 0, 22)
-	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-	valueLabel.TextTruncate = Enum.TextTruncate.AtEnd
 
 	local track = Create("TextButton", {
 		Parent = row,
-		Position = UDim2.new(0, 0, 0, 28),
+		Position = UDim2.new(0, 0, 0, 26),
 		Size = UDim2.new(1, 0, 0, 16),
 		BackgroundColor3 = config.colors.control or config.colors.surface2,
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
 	})
-	Stroke(track, config.colors.border, 1)
+	Stroke(track, config.colors.borderSoft, 1, 0.5)
 
 	local fill = Create("Frame", {
 		Parent = track,
 		Size = UDim2.new((val - min) / math.max(max - min, 1e-9), 0, 1, 0),
 		BackgroundColor3 = config.colors.purple,
 		BorderSizePixel = 0,
+		ZIndex = 1,
 	})
+
+	-- Value centered in track (QuantHub-style)
+	local valueLabel = TextLabel(track, tostring(val) .. " / " .. tostring(max), 11, config.colors.textSoft, config.font)
+	valueLabel.Size = UDim2.fromScale(1, 1)
+	valueLabel.TextXAlignment = Enum.TextXAlignment.Center
+	valueLabel.ZIndex = 2
 
 	local dragging = false
 
@@ -62,7 +63,7 @@ function Slider.build(hub, element)
 		val = newVal
 		hub.deps.settings.Set(hub.settings, flag, val)
 		fill.Size = UDim2.new((val - min) / math.max(max - min, 1e-9), 0, 1, 0)
-		valueLabel.Text = tostring(val) .. "/" .. tostring(max)
+		valueLabel.Text = tostring(val) .. " / " .. tostring(max)
 		if fireCallback and element.callback then
 			element.callback(val)
 		end

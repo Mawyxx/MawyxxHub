@@ -1,4 +1,4 @@
--- Exact QuantHub palette (user-specified hex).
+-- QuantHub-inspired palette: layered depth, muted accent, clean sans.
 
 local Defaults = {
 	window = {
@@ -8,29 +8,27 @@ local Defaults = {
 		title = "MawyxxHub",
 	},
 	colors = {
-		-- #111111 — window / sidebar / page chrome
+		-- Chrome (deepest)
 		bg = Color3.fromRGB(17, 17, 17),
-		-- Group cards sit slightly above chrome (same family as #111)
-		surface = Color3.fromRGB(17, 17, 17),
-		surface2 = Color3.fromRGB(17, 17, 17),
-		surfaceHover = Color3.fromRGB(28, 28, 28),
-		-- #000000 — search, dropdown, buttons, slider tracks, off toggles
-		control = Color3.fromRGB(0, 0, 0),
-		controlHover = Color3.fromRGB(22, 22, 22),
-		border = Color3.fromRGB(40, 40, 40),
-		borderSoft = Color3.fromRGB(28, 28, 28),
-		-- #FFFFFF — primary labels
+		-- Group / panel lift
+		surface = Color3.fromRGB(22, 22, 22),
+		surface2 = Color3.fromRGB(28, 28, 28),
+		surfaceHover = Color3.fromRGB(34, 34, 34),
+		-- Controls sit near-black, not pure #000 (less harsh)
+		control = Color3.fromRGB(10, 10, 10),
+		controlHover = Color3.fromRGB(26, 26, 26),
+		border = Color3.fromRGB(36, 36, 36),
+		borderSoft = Color3.fromRGB(30, 30, 30),
 		text = Color3.fromRGB(255, 255, 255),
-		-- #A0A0A0 — inactive tabs, slider values, secondary labels
 		textSoft = Color3.fromRGB(160, 160, 160),
-		textMuted = Color3.fromRGB(160, 160, 160),
-		-- #7B52FF — accent (fills, on-toggles, brand, active tab)
-		purple = Color3.fromRGB(123, 82, 255),
-		purpleHover = Color3.fromRGB(143, 110, 255),
-		purpleDark = Color3.fromRGB(95, 60, 210),
+		textMuted = Color3.fromRGB(120, 120, 120),
+		-- Muted lavender accent (less neon than raw #7B52FF)
+		purple = Color3.fromRGB(118, 100, 200),
+		purpleHover = Color3.fromRGB(138, 120, 215),
+		purpleDark = Color3.fromRGB(90, 74, 160),
 		white = Color3.fromRGB(255, 255, 255),
 	},
-	font = Enum.Font.Code,
+	font = Enum.Font.Gotham,
 	animations = true,
 	settingsTable = "MawyxxHubSettings",
 	toggleKey = Enum.KeyCode.RightControl,

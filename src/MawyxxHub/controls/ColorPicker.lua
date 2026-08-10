@@ -49,15 +49,15 @@ function ColorPicker.build(hub, element)
 		Parent = row,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
-		Size = UDim2.new(0, 26, 0, 22),
+		Size = UDim2.new(0, 16, 0, 16),
 		BackgroundColor3 = color,
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 5,
 	})
-	Stroke(swatch, config.colors.border, 1)
-	Corner(swatch, 3)
+	Stroke(swatch, config.colors.borderSoft, 1, 0.4)
+	Corner(swatch, 2)
 
 	local panelW = PANEL_PAD + SV + GAP + HUE_W + PANEL_PAD
 	local panelH = PANEL_PAD + 18 + GAP + SV + GAP + PREVIEW_H + GAP + BTN_H + PANEL_PAD
