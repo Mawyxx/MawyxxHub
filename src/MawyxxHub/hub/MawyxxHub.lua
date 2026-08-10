@@ -1,4 +1,5 @@
 -- Hub class: Tab → Group → Controls. Public API + lifecycle.
+-- Batch updates, unique flags, remove*, applyTheme (PRIME contract surface).
 
 local Defaults = require(script.Parent.Parent.config.Defaults)
 local Merge = require(script.Parent.Parent.config.Merge)
@@ -31,11 +32,28 @@ local function mergeDeps(overrides)
 	return base
 end
 
+local function scheduleRefresh(hub, wantSidebar)
+	if (hub._batchDepth or 0) > 0 then
+		hub._pendingRefresh = true
+		if wantSidebar then
+			hub._pendingSidebar = true
+		end
+		return
+	end
+	hub:_refreshPages()
+	if wantSidebar then
+		hub:_renderSidebar()
+	end
+end
+
 local function appendControl(hub, group, el)
 	Validate.alive(hub)
 	Validate.group(group)
+	if el.flag then
+		Validate.flagUnique(hub, el.flag)
+	end
 	table.insert(group.elements, el)
-	hub:_refreshPages()
+	scheduleRefresh(hub, false)
 	return el
 end
 
@@ -47,6 +65,9 @@ function MawyxxHub.new(userConfig, deps)
 	self.activeTab = nil
 	self._destroyed = false
 	self._bindings = {}
+	self._batchDepth = 0
+	self._pendingRefresh = false
+	self._pendingSidebar = false
 	self.searchQuery = ""
 	self._maid = Maid.new()
 	self._pageMaid = Maid.new()
@@ -61,6 +82,30 @@ function MawyxxHub.new(userConfig, deps)
 	Shortcuts.setup(self)
 	self:_renderSidebar()
 	return self
+end
+
+--- Batch structural changes into one refresh (call endUpdate when done).
+function MawyxxHub:beginUpdate()
+	Validate.alive(self)
+	self._batchDepth += 1
+end
+
+function MawyxxHub:endUpdate()
+	Validate.alive(self)
+	self._batchDepth = math.max(0, (self._batchDepth or 0) - 1)
+	if self._batchDepth > 0 then
+		return
+	end
+	local needPages = self._pendingRefresh
+	local needSidebar = self._pendingSidebar
+	self._pendingRefresh = false
+	self._pendingSidebar = false
+	if needPages then
+		self:_refreshPages()
+	end
+	if needSidebar then
+		self:_renderSidebar()
+	end
 end
 
 function MawyxxHub:tween(object, properties, info)
@@ -90,10 +135,11 @@ function MawyxxHub:addTab(name)
 	Validate.label(name)
 	local tab = Model.attachGroupsAlias(Model.newTab(name))
 	table.insert(self.tabs, tab)
-	self:_renderSidebar()
 	if #self.tabs == 1 then
-		self:activateTab(tab)
+		tab.active = true
+		self.activeTab = tab
 	end
+	scheduleRefresh(self, true)
 	return tab
 end
 
@@ -105,7 +151,16 @@ function MawyxxHub:activateTab(tab)
 	end
 	tab.active = true
 	self.activeTab = tab
-	self:_refreshPages()
+
+	-- Fast path: flip page visibility without full rebuild
+	if self.pages and next(self.pages) ~= nil then
+		for t, page in pairs(self.pages) do
+			page.Visible = t == tab
+		end
+		Sidebar.updateHighlight(self)
+		return
+	end
+	scheduleRefresh(self, false)
 end
 
 --- Explicit group by text name only (equal width, height from controls).
@@ -115,7 +170,7 @@ function MawyxxHub:addGroup(tab, name)
 	Validate.label(name)
 	local group = Model.newGroup(name)
 	table.insert(tab.groups, group)
-	self:_refreshPages()
+	scheduleRefresh(self, false)
 	return group
 end
 
@@ -209,7 +264,84 @@ function MawyxxHub:set(flag, value)
 		binding.apply(value)
 		return
 	end
-	self:_refreshPages()
+	scheduleRefresh(self, false)
+end
+
+--- Remove a stateful control by flag. Returns true if removed.
+function MawyxxHub:removeControl(flag)
+	Validate.alive(self)
+	Validate.flag(flag)
+	for _, tab in ipairs(self.tabs) do
+		for _, group in ipairs(tab.groups or {}) do
+			for i, el in ipairs(group.elements) do
+				if el.flag == flag then
+					table.remove(group.elements, i)
+					self._bindings[flag] = nil
+					scheduleRefresh(self, false)
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+--- Remove a group from its tab.
+function MawyxxHub:removeGroup(tab, group)
+	Validate.alive(self)
+	Validate.tab(tab)
+	Validate.group(group)
+	local groups = tab.groups or {}
+	for i, g in ipairs(groups) do
+		if g == group then
+			table.remove(groups, i)
+			scheduleRefresh(self, false)
+			return true
+		end
+	end
+	return false
+end
+
+--- Remove a tab (and its groups). Activates first remaining tab if needed.
+function MawyxxHub:removeTab(tab)
+	Validate.alive(self)
+	Validate.tab(tab)
+	for i, t in ipairs(self.tabs) do
+		if t == tab then
+			table.remove(self.tabs, i)
+			if self.activeTab == tab then
+				self.activeTab = self.tabs[1]
+				if self.activeTab then
+					self.activeTab.active = true
+				end
+			end
+			scheduleRefresh(self, true)
+			return true
+		end
+	end
+	return false
+end
+
+--- Merge color overrides and rebuild visible chrome.
+function MawyxxHub:applyTheme(partialColors)
+	Validate.alive(self)
+	Validate.expectTable(partialColors, "Theme.Colors", "partialColors must be a table")
+	for k, v in pairs(partialColors) do
+		self.config.colors[k] = v
+	end
+	if self.window and partialColors.bg then
+		self.window.BackgroundColor3 = partialColors.bg
+	end
+	if self.sidebar and partialColors.bg then
+		self.sidebar.BackgroundColor3 = partialColors.bg
+	end
+	if self.topbar and partialColors.bg then
+		self.topbar.BackgroundColor3 = partialColors.bg
+	end
+	if self.content and partialColors.bg then
+		self.content.BackgroundColor3 = partialColors.bg
+	end
+	scheduleRefresh(self, true)
 end
 
 function MawyxxHub:Destroy()

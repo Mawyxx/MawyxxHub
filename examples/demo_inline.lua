@@ -1,6 +1,6 @@
--- Inline demo body (appended by bundle into dist/___RUN_HSV.lua). No HttpGet.
+-- Inline demo body (appended by bundle into dist runner). No HttpGet.
 
-print("[MawyxxHub] BUILD=UI_V18_SINGLEFILE")
+print("[MawyxxHub] BUILD=UI_V19_SINGLEFILE")
 
 local MawyxxHub = __require("init")
 assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")
@@ -9,14 +9,20 @@ local hub = MawyxxHub.new({
 	window = { title = "MawyxxHub Demo", width = 920, height = 600, sidebarWidth = 156 },
 	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
 	startHidden = true,
+	toggleKey = Enum.KeyCode.RightControl,
 	group = {
 		columns = 2,
 		gap = 10,
 		gutter = 14,
 		padding = 14,
+		paddingLeft = 14,
+		paddingRight = 10,
 		innerPadding = 12,
 	},
 })
+
+-- One refresh after the full tree is declared
+hub:beginUpdate()
 
 local combat = hub:addTab("Combat")
 local visuals = hub:addTab("Visuals")
@@ -71,7 +77,29 @@ local ui = hub:addGroup(misc, "UI")
 local danger = hub:addGroup(misc, "Session")
 
 hub:addToggle(ui, "Animations", "demo_ui_anim", true)
-hub:addDropdown(ui, "Accent", "demo_accent", { "Purple", "Blue", "Red" }, "Purple")
+hub:addDropdown(ui, "Accent", "demo_accent", { "Purple", "Blue", "Red" }, "Purple", function(name)
+	local accents = {
+		Purple = {
+			purple = Color3.fromRGB(117, 72, 255),
+			purpleHover = Color3.fromRGB(132, 91, 255),
+			purpleDark = Color3.fromRGB(87, 49, 190),
+		},
+		Blue = {
+			purple = Color3.fromRGB(70, 140, 255),
+			purpleHover = Color3.fromRGB(100, 160, 255),
+			purpleDark = Color3.fromRGB(40, 90, 190),
+		},
+		Red = {
+			purple = Color3.fromRGB(220, 70, 70),
+			purpleHover = Color3.fromRGB(240, 100, 100),
+			purpleDark = Color3.fromRGB(160, 40, 40),
+		},
+	}
+	local theme = accents[name]
+	if theme then
+		hub:applyTheme(theme)
+	end
+end)
 hub:addButton(ui, "Print flags", function()
 	print("aim", hub:get("demo_aim_on"), "fov", hub:get("demo_aim_fov"))
 end)
@@ -79,5 +107,7 @@ end)
 hub:addButton(danger, "Destroy hub", function()
 	hub:Destroy()
 end)
+
+hub:endUpdate()
 
 print("[MawyxxHub] Demo ready — RightControl — click color square for HSV picker")

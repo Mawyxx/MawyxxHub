@@ -22,8 +22,28 @@ function Validate.flag(flag)
 	Errors.expect(type(flag) == "string" and flag ~= "", "Validate.Flag", "flag must be a non-empty string")
 end
 
+function Validate.flagUnique(hub, flag)
+	Validate.flag(flag)
+	Errors.expect(type(hub) == "table" and type(hub.tabs) == "table", "Validate.FlagUnique", "hub required")
+	for _, tab in ipairs(hub.tabs) do
+		for _, group in ipairs(tab.groups or tab.sections or {}) do
+			for _, el in ipairs(group.elements or {}) do
+				Errors.expect(
+					el.flag ~= flag,
+					"Validate.FlagUnique",
+					("duplicate flag %q — labels may repeat, flags must be unique"):format(flag)
+				)
+			end
+		end
+	end
+end
+
 function Validate.label(label)
 	Errors.expect(type(label) == "string" and label ~= "", "Validate.Label", "label must be a non-empty string")
+end
+
+function Validate.expectTable(value, ruleId, message)
+	Errors.expect(type(value) == "table", ruleId, message)
 end
 
 function Validate.sliderRange(min, max, step)

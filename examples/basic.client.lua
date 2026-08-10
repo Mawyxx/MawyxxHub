@@ -5,10 +5,11 @@ local MawyxxHub = require(ReplicatedStorage:WaitForChild("MawyxxHub"))
 
 local hub = MawyxxHub.new()
 
+hub:beginUpdate()
+
 local combat = hub:addTab("Combat")
 local visuals = hub:addTab("Visuals")
 
--- Just names — no sizes, no drawing. Framework lays out equal-width cards.
 local aim = hub:addGroup(combat, "Aim")
 local rage = hub:addGroup(combat, "Rage")
 local esp = hub:addGroup(visuals, "ESP")
@@ -24,3 +25,5 @@ end)
 
 hub:addToggle(esp, "Boxes", "esp_boxes", true)
 hub:addColorPicker(esp, "Box color", "esp_color", Color3.fromRGB(117, 72, 255))
+
+hub:endUpdate()

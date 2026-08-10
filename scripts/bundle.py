@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bundle src/MawyxxHub into dist/MawyxxHub.lua for HttpGet + loadstring."""
+"""Bundle src/MawyxxHub into dist/ for HttpGet + loadstring."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "src" / "MawyxxHub"
 OUT = Path(__file__).resolve().parent.parent / "dist" / "MawyxxHub.lua"
+# Current single-file demo (bump when HttpGet cache must be busted)
+RUN_NAME = "___RUN_UI_V19.lua"
 
 REQUIRE_RE = re.compile(r"require\((script(?:\.[A-Za-z_][A-Za-z0-9_]*)+)\)")
 
@@ -93,43 +95,22 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     text = "\n".join(parts)
     OUT.write_text(text, encoding="utf-8", newline="\n")
-    for name in ("MawyxxHub.bundle.lua", "MawyxxHub.hsv.lua"):
-        alt = OUT.parent / name
-        alt.write_text(text, encoding="utf-8", newline="\n")
-        print(f"Wrote {alt}")
+    # Keep one alt name for docs that still reference .bundle.lua
+    (OUT.parent / "MawyxxHub.bundle.lua").write_text(text, encoding="utf-8", newline="\n")
 
-    # Single-file runner: hub + demo, one HttpGet (defeats executor URL cache of FakeDemo)
     demo_path = Path(__file__).resolve().parent.parent / "examples" / "demo_inline.lua"
     demo = demo_path.read_text(encoding="utf-8")
-    run_parts = parts[:-2]  # drop `return __require("init")` and trailing empty
+    run_parts = parts[:-2]
     run_parts.append("")
     run_parts.append("-- ===== INLINE DEMO =====")
     for line in demo.splitlines():
         run_parts.append(line)
     run_parts.append("")
-    run_out = OUT.parent / "___RUN_HSV.lua"
-    run_out.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
-    print(f"Wrote {run_out} ({run_out.stat().st_size} bytes)")
-    for name in (
-        "___RUN_HSV_V5.lua",
-        "___RUN_UI_V6.lua",
-        "___RUN_UI_V7.lua",
-        "___RUN_UI_V8.lua",
-        "___RUN_UI_V9.lua",
-        "___RUN_UI_V10.lua",
-        "___RUN_UI_V11.lua",
-        "___RUN_UI_V12.lua",
-        "___RUN_UI_V13.lua",
-        "___RUN_UI_V14.lua",
-        "___RUN_UI_V15.lua",
-        "___RUN_UI_V16.lua",
-        "___RUN_UI_V17.lua",
-        "___RUN_UI_V18.lua",
-    ):
-        alt = OUT.parent / name
-        alt.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
-        print(f"Wrote {alt}")
+    run_text = "\n".join(run_parts)
+    run_out = OUT.parent / RUN_NAME
+    run_out.write_text(run_text, encoding="utf-8", newline="\n")
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes, {len(files)} modules, leftover={leftover})")
+    print(f"Wrote {run_out} ({run_out.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":

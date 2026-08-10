@@ -16,17 +16,20 @@ local function addColumnList(col, gap)
 	})
 end
 
+local function layoutPads(gcfg, fallbackPad)
+	local padL = gcfg.paddingLeft or fallbackPad or 14
+	local padR = gcfg.paddingRight or 10
+	local scrollBar = gcfg.scrollBarGutter or 6
+	return math.max(padL, 8), math.max(padR, 0), math.max(scrollBar, 0)
+end
+
 --- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
---- Right edge of column 2 keeps exactly 10px to the content end (plus scrollbar gutter).
-local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
+local function layoutTwoColumns(scroll, row, left, right, gutter, padL, padR, scrollBar)
 	local viewW = scroll.AbsoluteSize.X
 	if viewW <= 1 then
 		return false
 	end
 	local g = math.max(gutter, 8)
-	local padL = math.max(pad, 8)
-	local padR = 10
-	local scrollBar = 6
 	local usable = math.max(viewW - padL - padR - scrollBar, 80)
 	local colW = math.max(math.floor((usable - g) / 2), 40)
 
@@ -41,6 +44,10 @@ local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
 end
 
 function Pages.render(hub)
+	if hub._suspendLayout then
+		return
+	end
+
 	hub._pageMaid:DoCleaning()
 	hub._bindings = {}
 
@@ -59,6 +66,7 @@ function Pages.render(hub)
 	local gcfg = hub.config.group or {}
 	local gap = gcfg.gap or 7
 	local pad = gcfg.padding or 14
+	local padL, padR, scrollBar = layoutPads(gcfg, pad)
 	local columns = math.max(1, gcfg.columns or 2)
 	local gutter = gcfg.gutter or 12
 
@@ -85,8 +93,6 @@ function Pages.render(hub)
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			ClipsDescendants = true,
 		})
-		-- Vertical pad only via top offset on row; horizontal pad baked into layoutTwoColumns.
-		-- (UIPadding on ScrollingFrame does not reliably shrink child AbsoluteSize.)
 
 		local row = Create("Frame", {
 			Name = "Columns",
@@ -111,13 +117,16 @@ function Pages.render(hub)
 			cols[1] = col
 
 			local function relayout1()
+				if hub._suspendLayout then
+					return
+				end
 				local viewW = scroll.AbsoluteSize.X
 				if viewW <= 0 then
 					return
 				end
-				local usable = math.max(viewW - pad * 2 - 6, 80)
+				local usable = math.max(viewW - padL - padR - scrollBar, 80)
 				row.Size = UDim2.new(0, usable, 0, 0)
-				row.Position = UDim2.new(0, pad, 0, pad)
+				row.Position = UDim2.new(0, padL, 0, padL)
 				col.Size = UDim2.new(1, 0, 0, 0)
 			end
 			hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout1)
@@ -144,7 +153,10 @@ function Pages.render(hub)
 			cols[2] = right
 
 			local function relayout()
-				layoutTwoColumns(scroll, row, left, right, gutter, pad)
+				if hub._suspendLayout then
+					return
+				end
+				layoutTwoColumns(scroll, row, left, right, gutter, padL, padR, scrollBar)
 			end
 			hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout)
 			hub._pageMaid:Connect(page:GetPropertyChangedSignal("AbsoluteSize"), relayout)
@@ -158,10 +170,10 @@ function Pages.render(hub)
 		else
 			Create("UIPadding", {
 				Parent = scroll,
-				PaddingLeft = UDim.new(0, pad),
-				PaddingRight = UDim.new(0, pad),
-				PaddingTop = UDim.new(0, pad),
-				PaddingBottom = UDim.new(0, pad),
+				PaddingLeft = UDim.new(0, padL),
+				PaddingRight = UDim.new(0, padR),
+				PaddingTop = UDim.new(0, padL),
+				PaddingBottom = UDim.new(0, padL),
 			})
 			local shrink = math.ceil(gutter * (columns - 1) / columns)
 			row.Size = UDim2.new(1, 0, 0, 0)

@@ -78,9 +78,11 @@ function Shortcuts.setup(hub)
 		hub.window.Position = UDim2.fromScale(0.5, 0.5)
 
 		if open then
+			hub._suspendLayout = true
 			hub.window.Visible = true
 			hub.window.Size = STRIP
 			-- Width already full — layout columns once, height reveal only clips
+			hub._suspendLayout = false
 			runLayouts()
 			task.defer(runLayouts)
 
@@ -94,15 +96,18 @@ function Shortcuts.setup(hub)
 			task.delay(OPEN_MS, function()
 				if token == animToken and not hub._destroyed then
 					hub.window.Size = FULL
+					hub._suspendLayout = false
 					runLayouts()
 				end
 			end)
 		else
 			clearSearch()
+			hub._suspendLayout = true
 
 			if hub.config.animations == false then
 				hub.window.Size = STRIP
 				hub.window.Visible = false
+				hub._suspendLayout = false
 				return
 			end
 
@@ -115,6 +120,7 @@ function Shortcuts.setup(hub)
 					hub.window.Size = STRIP
 					hub.window.Visible = false
 				end
+				hub._suspendLayout = false
 			end)
 		end
 	end
@@ -129,7 +135,8 @@ function Shortcuts.setup(hub)
 		if hub._destroyed then
 			return
 		end
-		if inp.KeyCode == Enum.KeyCode.RightControl then
+		local key = hub.config.toggleKey or Enum.KeyCode.RightControl
+		if inp.KeyCode == key then
 			setOpen(not visible)
 		end
 	end)

@@ -10,19 +10,19 @@ Repo: https://github.com/Mawyxx/MawyxxHub
 
 ## Quick start (executor)
 
-**Full demo** (hub + sample tabs, one file — use this URL to avoid HttpGet cache):
+**Full demo** (one HttpGet — use this URL):
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/___RUN_UI_V18.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/___RUN_UI_V19.lua"))()
 ```
 
 - Starts **hidden**
-- **RightControl** — open / close
-- Red **×** — close (same as RightControl)
-- Drag window from the top bar
-- Search filters controls on the active page
+- **RightControl** (configurable via `toggleKey`) — open / close
+- Red **×** — close
+- Drag from the top bar
+- Search filters controls; cleared on close
 
-**Framework only** (build your own UI):
+**Framework only:**
 
 ```lua
 local MawyxxHub = loadstring(game:HttpGet(
@@ -31,20 +31,17 @@ local MawyxxHub = loadstring(game:HttpGet(
 
 local hub = MawyxxHub.new({
 	window = { width = 920, height = 600, sidebarWidth = 156 },
-	brand = { prefix = "Mawyxx", accent = "Hub", footer = "My Script" },
+	toggleKey = Enum.KeyCode.RightControl,
 	startHidden = true,
 })
 
+hub:beginUpdate()
 local combat = hub:addTab("Combat")
 local aim = hub:addGroup(combat, "Aim")
-
 hub:addToggle(aim, "Enabled", "aim_on", false, function(on)
 	print("aim", on)
 end)
-
-hub:addSlider(aim, "FOV", "aim_fov", 10, 180, 1, 75, function(v)
-	print("fov", v)
-end)
+hub:endUpdate()
 ```
 
 ---
@@ -58,182 +55,123 @@ Hub
          └─ Controls  (toggle, slider, dropdown, button, color picker)
 ```
 
-You only declare structure and flags. Layout, scrolling, search, and open/close animation are handled by the framework.
-
 ---
 
 ## API
 
-### `MawyxxHub.new(config?, deps?) → hub`
+### Construction
 
-Creates the window and binds a settings table (default `_G.MawyxxHubSettings`).
+`MawyxxHub.new(config?, deps?) → hub`
 
-### Tabs & groups
+### Batch updates (important)
+
+```lua
+hub:beginUpdate()
+-- many addTab / addGroup / addToggle …
+hub:endUpdate() -- one refresh
+```
+
+Without batching, each `add*` refreshes the UI (still correct, just slower for large trees).
+
+### Structure
 
 | Method | Description |
 |--------|-------------|
-| `hub:addTab(name)` | Sidebar tab. Returns `tab`. |
-| `hub:activateTab(tab)` | Switch active tab. |
-| `hub:addGroup(tab, name)` | Card under a tab. Returns `group`. |
-| `hub:addSection(tab, name)` | Alias of `addGroup`. |
+| `addTab(name)` | Sidebar tab |
+| `activateTab(tab)` | Switch tab (fast path: visibility only) |
+| `addGroup(tab, name)` / `addSection` | Card under tab |
+| `removeTab(tab)` | Remove tab |
+| `removeGroup(tab, group)` | Remove group |
+| `removeControl(flag)` | Remove control by flag |
 
 ### Controls
 
-All stateful controls take a unique **`flag`** string. Values are stored in the settings table and readable via `hub:get` / `hub:set`.
+Stateful controls need a unique **`flag`**. Duplicate flags **error**.
 
 ```lua
 hub:addToggle(group, label, flag, default?, callback?)
--- callback(boolean)
-
 hub:addSlider(group, label, flag, min, max, step, default?, callback?)
--- callback(number)
-
 hub:addDropdown(group, label, flag, options, default?, callback?)
--- options = { "A", "B", ... }; callback(string)
-
 hub:addColorPicker(group, label, flag, defaultColor3?, callback?)
--- click swatch → HSV square + hue strip → OK / Cancel; callback(Color3)
-
-hub:addButton(group, label, callback?)
--- no flag; fire-and-forget action
+hub:addButton(group, label, callback?) -- no flag
 ```
 
-### State
+### State & theme
 
 ```lua
-local on = hub:get("aim_on")     -- read
-hub:set("aim_on", true)          -- write + update UI
-hub:Destroy()                    -- tear down ScreenGui + connections
+hub:get("aim_on")
+hub:set("aim_on", true)          -- updates UI; does not fire callback
+hub:applyTheme({ purple = Color3.fromRGB(70, 140, 255) })
+hub:Destroy()
 ```
 
-**How controls are identified (important for script authors)**
-
-- **Tab** and **Group** are only layout. You pass them when *creating* UI so the control appears in the right place.
-- After that, the program does **not** address controls as `Tab → Group → Label`.
-- Stateful controls (`toggle` / `slider` / `dropdown` / `color`) are addressed by a unique **`flag`** string on the whole hub.
-- `hub:get("aim_on")` / `hub:set("aim_on", true)` work from anywhere — no tab/group path needed.
-- **`flag` must be unique** across the entire hub (two toggles cannot share `"speed"`).
-- **Labels may repeat** — e.g. two groups both can show `"Enabled"`. Same text is fine; different flags are required (`"aim_on"` vs `"esp_on"`).
-- **Buttons** have no flag: they only run `callback` on click. For on/off state, use a toggle.
+**Identity:** Tab/Group are layout only. Runtime identity is **`flag`**. Labels may repeat; flags must not.
 
 ```lua
--- Same label, different flags — correct:
-local aim = hub:addGroup(combat, "Aim")
-local esp = hub:addGroup(visuals, "ESP")
 hub:addToggle(aim, "Enabled", "aim_on", false)
-hub:addToggle(esp, "Enabled", "esp_on", true)
-
-hub:get("aim_on")  -- Aim toggle
-hub:get("esp_on")  -- ESP toggle
-```
-
-```lua
--- Build (structure matters here):
-local combat = hub:addTab("Combat")
-local aim = hub:addGroup(combat, "Aim")
-hub:addToggle(aim, "Enabled", "aim_on", false, function(on)
-	-- game logic; `on` is already saved under flag "aim_on"
-end)
-
--- Later / elsewhere (structure does NOT matter):
-if hub:get("aim_on") then
-	-- ...
-end
-hub:set("aim_fov", 90) -- UI updates if that slider exists
-```
-
-**Pattern for your script logic**
-
-```lua
-hub:addToggle(g, "Speed", "speed_on", false, function(on)
-	-- runs on every click with the new value
-end)
-
--- or poll elsewhere:
-if hub:get("speed_on") then
-	-- ...
-end
+hub:addToggle(esp, "Enabled", "esp_on", true) -- OK — same label, different flags
 ```
 
 ---
 
-## Config (optional)
-
-Deep-merged over defaults. Useful keys:
+## Config highlights
 
 ```lua
 MawyxxHub.new({
-	window = {
-		width = 920,
-		height = 600,
-		sidebarWidth = 156,
-		title = "MawyxxHub",
-	},
-	brand = {
-		prefix = "Mawyxx",  -- white
-		accent = "Hub",     -- purple
-		footer = "Mawyxx / Hub",
-	},
-	search = {
-		enabled = true,
-		placeholder = "Search",
-	},
-	startHidden = true,       -- open with RightControl
-	animations = true,        -- open/close strip animation
-	settingsTable = "MawyxxHubSettings", -- _G key for flags
+	toggleKey = Enum.KeyCode.RightControl,
+	startHidden = true,
+	animations = true,
+	settingsTable = "MawyxxHubSettings", -- _G key (session)
 	group = {
 		columns = 2,
-		gap = 10,             -- vertical gap between cards
-		gutter = 14,          -- horizontal gap between columns
-		padding = 14,         -- page padding (right column keeps 10px to edge)
+		gap = 10,
+		gutter = 14,
+		paddingLeft = 14,
+		paddingRight = 10,
+		scrollBarGutter = 6,
 		innerPadding = 12,
 	},
-	colors = { --[[ theme Color3s ]] },
-	font = Enum.Font.Code,
+	brand = { prefix = "Mawyxx", accent = "Hub", footer = "…" },
+	colors = { --[[ theme ]] },
 })
 ```
 
 ---
 
-## UX behavior
+## UX
 
 | Feature | Behavior |
 |---------|----------|
-| Open / close | Vertical strip from center (linear, fast). RightControl or ×. |
-| Search | Live filter by group/control label & flag. Cleared + unfocused on close. |
-| Color picker | Overlay HSV picker (square + hue bar), OK / Cancel. |
-| Groups | Equal width; height from content; 2 columns. |
-| Tabs | Centered labels in sidebar. Brand centered in header. |
+| Open / close | Vertical strip from center; `toggleKey` or × |
+| Search | Live filter; Cyrillic-aware; clear + unfocus on close |
+| Color | HSV square + hue strip; OK / Cancel |
+| Dropdown | Outside-click closes; follows button on resize |
+| Slider | Gui-inset-correct mouse sampling |
+
+---
+
+## Rebuild
+
+```bash
+python scripts/bundle.py
+```
+
+Writes `dist/MawyxxHub.lua`, `dist/MawyxxHub.bundle.lua`, `dist/___RUN_UI_V19.lua`.
+
+---
+
+## Tests (Studio / TestEZ)
+
+Under `tests/studio/`: Merge, Filter (+ Cyrillic), Validate.flagUnique, Maid.
 
 ---
 
 ## Project layout
 
 ```
-src/MawyxxHub/          source modules
-dist/MawyxxHub.lua      bundled framework for HttpGet
-dist/___RUN_UI_V18.lua  bundled framework + English demo
-examples/               Studio / inline demo sources
-scripts/bundle.py       rebuild dist/*
+src/MawyxxHub/     source
+dist/              HttpGet bundles
+examples/          demo_inline, basic.client, loadstring
+scripts/bundle.py  bundler
+tests/studio/      TestEZ specs
 ```
-
-### Rebuild after editing `src/`
-
-```bash
-python scripts/bundle.py
-```
-
-Then commit and push if you publish to GitHub.
-
-### Studio / Rojo
-
-`default.project.json` maps `src/MawyxxHub` into the DataModel. See `examples/basic.client.lua` for a local `require` example.
-
----
-
-## Notes
-
-- Prefer a **new** `dist/___RUN_UI_V*.lua` URL when testing updates — many executors cache `HttpGet` by path forever.
-- `flag` names must be unique across the hub.
-- Buttons have no stored state; use toggles for on/off.
-- Search TextBox uses Gotham so non-ASCII input works; UI labels use the config font (default Code).

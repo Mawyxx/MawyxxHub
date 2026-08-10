@@ -3,6 +3,7 @@
 
 	IInputService:
 	  GetMouseLocation() -> Vector2
+	  GetMouseLocationGui() -> Vector2  (AbsolutePosition space)
 	  InputBegan, InputChanged, InputEnded : RBXScriptSignal
 
 	IGuiHost:
@@ -18,6 +19,7 @@
 	ISettingsStore:
 	  Bind(key) -> table
 	  Get(store, flag) / Set(store, flag, value)
+	  Session-scoped by default (_G); swap adapter for persistence.
 ]]
 
 return {

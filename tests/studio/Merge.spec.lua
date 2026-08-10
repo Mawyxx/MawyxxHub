@@ -1,5 +1,4 @@
 -- TestEZ: deep merge does not share nested tables with Defaults.
--- Place under ServerScriptService.Tests and run with TestEZ.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Merge = require(ReplicatedStorage.MawyxxHub.config.Merge)
@@ -13,7 +12,8 @@ return function()
 			expect(Defaults.colors.purple).never.to.equal(cfg.colors.purple)
 			expect(Defaults.window.width).to.equal(920)
 			expect(cfg.window.width).to.equal(100)
-			expect(cfg.window.height).to.equal(570)
+			expect(cfg.window.height).to.equal(600)
+			expect(cfg.toggleKey).to.equal(Enum.KeyCode.RightControl)
 		end)
 	end)
 end

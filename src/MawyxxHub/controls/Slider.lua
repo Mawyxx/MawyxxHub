@@ -78,17 +78,24 @@ function Slider.build(hub, element)
 	}
 
 	local function updateFromX(inputX)
-		local rel = math.clamp((inputX - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
+		local getter = input.GetMouseLocationGui or input.GetMouseLocation
+		local mouseX = inputX
+		if mouseX == nil then
+			mouseX = getter().X
+		end
+		local rel = math.clamp((mouseX - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
 		apply(min + (max - min) * rel, true)
 	end
 
 	hub._pageMaid:Connect(track.MouseButton1Down, function()
 		dragging = true
-		updateFromX(input.GetMouseLocation().X)
+		local getter = input.GetMouseLocationGui or input.GetMouseLocation
+		updateFromX(getter().X)
 	end)
 	hub._pageMaid:Connect(input.InputChanged, function(inp)
 		if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
-			updateFromX(inp.Position.X)
+			local getter = input.GetMouseLocationGui or input.GetMouseLocation
+			updateFromX(getter().X)
 		end
 	end)
 	hub._pageMaid:Connect(input.InputEnded, function(inp)

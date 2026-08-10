@@ -9,6 +9,7 @@ local Dropdown = {}
 
 function Dropdown.build(hub, element)
 	local config = hub.config
+	local input = hub.deps.input
 	local flag = element.flag
 	local options = element.options or {}
 	local selected = hub.settings[flag]
@@ -50,14 +51,21 @@ function Dropdown.build(hub, element)
 	arrow.TextXAlignment = Enum.TextXAlignment.Center
 
 	local open = false
-	local list = Create("Frame", {
+	local maxVisible = 8
+	local rowH = 27
+	local listH = math.min(#options, maxVisible) * rowH
+	local list = Create("ScrollingFrame", {
 		Name = "DropdownList",
 		Parent = hub.overlay,
-		Size = UDim2.new(0, 100, 0, #options * 27),
+		Size = UDim2.new(0, 100, 0, listH),
 		BackgroundColor3 = config.colors.surface,
 		BorderSizePixel = 0,
 		Visible = false,
 		ZIndex = 250,
+		ScrollBarThickness = 3,
+		CanvasSize = UDim2.new(0, 0, 0, #options * rowH),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ClipsDescendants = true,
 	})
 	Stroke(list, config.colors.border, 1)
 	hub._pageMaid:Give(list)
@@ -67,13 +75,17 @@ function Dropdown.build(hub, element)
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	})
 
+	local function closeList()
+		open = false
+		list.Visible = false
+		arrow.Text = "⌄"
+	end
+
 	local function apply(opt, fireCallback)
 		selected = opt
 		hub.deps.settings.Set(hub.settings, flag, opt)
 		currentText.Text = tostring(opt)
-		open = false
-		list.Visible = false
-		arrow.Text = "⌄"
+		closeList()
 		if fireCallback and element.callback then
 			element.callback(opt)
 		end
@@ -91,7 +103,7 @@ function Dropdown.build(hub, element)
 	for _, opt in ipairs(options) do
 		local optBtn = Create("TextButton", {
 			Parent = list,
-			Size = UDim2.new(1, 0, 0, 27),
+			Size = UDim2.new(1, 0, 0, rowH),
 			BackgroundColor3 = config.colors.surface,
 			BorderSizePixel = 0,
 			Text = tostring(opt),
@@ -121,20 +133,52 @@ function Dropdown.build(hub, element)
 	end
 
 	local function reposition()
+		if not open then
+			return
+		end
 		local pos = btn.AbsolutePosition
 		local size = btn.AbsoluteSize
 		local parentPos = hub.overlay.AbsolutePosition
 		list.Position = UDim2.fromOffset(pos.X - parentPos.X, pos.Y - parentPos.Y + size.Y + 2)
-		list.Size = UDim2.fromOffset(size.X, #options * 27)
+		list.Size = UDim2.fromOffset(size.X, listH)
+	end
+
+	hub._pageMaid:Connect(btn:GetPropertyChangedSignal("AbsolutePosition"), reposition)
+	hub._pageMaid:Connect(btn:GetPropertyChangedSignal("AbsoluteSize"), reposition)
+	if hub.window then
+		hub._pageMaid:Connect(hub.window:GetPropertyChangedSignal("AbsoluteSize"), reposition)
 	end
 
 	hub._pageMaid:Connect(btn.MouseButton1Click, function()
 		open = not open
 		if open then
 			reposition()
+			list.Visible = true
+			arrow.Text = "⌃"
+		else
+			closeList()
 		end
-		list.Visible = open
-		arrow.Text = open and "⌃" or "⌄"
+	end)
+
+	-- Click outside closes list
+	hub._pageMaid:Connect(input.InputBegan, function(inp)
+		if not open then
+			return
+		end
+		if inp.UserInputType ~= Enum.UserInputType.MouseButton1 then
+			return
+		end
+		local getter = input.GetMouseLocationGui or input.GetMouseLocation
+		local m = getter()
+		local lp = list.AbsolutePosition
+		local ls = list.AbsoluteSize
+		local bp = btn.AbsolutePosition
+		local bs = btn.AbsoluteSize
+		local inList = m.X >= lp.X and m.X <= lp.X + ls.X and m.Y >= lp.Y and m.Y <= lp.Y + ls.Y
+		local inBtn = m.X >= bp.X and m.X <= bp.X + bs.X and m.Y >= bp.Y and m.Y <= bp.Y + bs.Y
+		if not inList and not inBtn then
+			closeList()
+		end
 	end)
 
 	return row

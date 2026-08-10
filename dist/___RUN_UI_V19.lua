@@ -156,6 +156,7 @@ __modules["config/Defaults"] = function(__require)
 		font = Enum.Font.Code,
 		animations = true,
 		settingsTable = "MawyxxHubSettings",
+		toggleKey = Enum.KeyCode.RightControl,
 		brand = {
 			prefix = "Mawyxx",
 			accent = "Hub",
@@ -171,6 +172,9 @@ __modules["config/Defaults"] = function(__require)
 			gap = 10,
 			gutter = 14,
 			padding = 14,
+			paddingLeft = 14,
+			paddingRight = 10,
+			scrollBarGutter = 6,
 			innerPadding = 12,
 			headerHeight = 36,
 			corner = 4,
@@ -732,6 +736,7 @@ __modules["controls/Dropdown"] = function(__require)
 	
 	function Dropdown.build(hub, element)
 		local config = hub.config
+		local input = hub.deps.input
 		local flag = element.flag
 		local options = element.options or {}
 		local selected = hub.settings[flag]
@@ -773,14 +778,21 @@ __modules["controls/Dropdown"] = function(__require)
 		arrow.TextXAlignment = Enum.TextXAlignment.Center
 	
 		local open = false
-		local list = Create("Frame", {
+		local maxVisible = 8
+		local rowH = 27
+		local listH = math.min(#options, maxVisible) * rowH
+		local list = Create("ScrollingFrame", {
 			Name = "DropdownList",
 			Parent = hub.overlay,
-			Size = UDim2.new(0, 100, 0, #options * 27),
+			Size = UDim2.new(0, 100, 0, listH),
 			BackgroundColor3 = config.colors.surface,
 			BorderSizePixel = 0,
 			Visible = false,
 			ZIndex = 250,
+			ScrollBarThickness = 3,
+			CanvasSize = UDim2.new(0, 0, 0, #options * rowH),
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			ClipsDescendants = true,
 		})
 		Stroke(list, config.colors.border, 1)
 		hub._pageMaid:Give(list)
@@ -790,13 +802,17 @@ __modules["controls/Dropdown"] = function(__require)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		})
 	
+		local function closeList()
+			open = false
+			list.Visible = false
+			arrow.Text = "⌄"
+		end
+	
 		local function apply(opt, fireCallback)
 			selected = opt
 			hub.deps.settings.Set(hub.settings, flag, opt)
 			currentText.Text = tostring(opt)
-			open = false
-			list.Visible = false
-			arrow.Text = "⌄"
+			closeList()
 			if fireCallback and element.callback then
 				element.callback(opt)
 			end
@@ -814,7 +830,7 @@ __modules["controls/Dropdown"] = function(__require)
 		for _, opt in ipairs(options) do
 			local optBtn = Create("TextButton", {
 				Parent = list,
-				Size = UDim2.new(1, 0, 0, 27),
+				Size = UDim2.new(1, 0, 0, rowH),
 				BackgroundColor3 = config.colors.surface,
 				BorderSizePixel = 0,
 				Text = tostring(opt),
@@ -844,20 +860,52 @@ __modules["controls/Dropdown"] = function(__require)
 		end
 	
 		local function reposition()
+			if not open then
+				return
+			end
 			local pos = btn.AbsolutePosition
 			local size = btn.AbsoluteSize
 			local parentPos = hub.overlay.AbsolutePosition
 			list.Position = UDim2.fromOffset(pos.X - parentPos.X, pos.Y - parentPos.Y + size.Y + 2)
-			list.Size = UDim2.fromOffset(size.X, #options * 27)
+			list.Size = UDim2.fromOffset(size.X, listH)
+		end
+	
+		hub._pageMaid:Connect(btn:GetPropertyChangedSignal("AbsolutePosition"), reposition)
+		hub._pageMaid:Connect(btn:GetPropertyChangedSignal("AbsoluteSize"), reposition)
+		if hub.window then
+			hub._pageMaid:Connect(hub.window:GetPropertyChangedSignal("AbsoluteSize"), reposition)
 		end
 	
 		hub._pageMaid:Connect(btn.MouseButton1Click, function()
 			open = not open
 			if open then
 				reposition()
+				list.Visible = true
+				arrow.Text = "⌃"
+			else
+				closeList()
 			end
-			list.Visible = open
-			arrow.Text = open and "⌃" or "⌄"
+		end)
+	
+		-- Click outside closes list
+		hub._pageMaid:Connect(input.InputBegan, function(inp)
+			if not open then
+				return
+			end
+			if inp.UserInputType ~= Enum.UserInputType.MouseButton1 then
+				return
+			end
+			local getter = input.GetMouseLocationGui or input.GetMouseLocation
+			local m = getter()
+			local lp = list.AbsolutePosition
+			local ls = list.AbsoluteSize
+			local bp = btn.AbsolutePosition
+			local bs = btn.AbsoluteSize
+			local inList = m.X >= lp.X and m.X <= lp.X + ls.X and m.Y >= lp.Y and m.Y <= lp.Y + ls.Y
+			local inBtn = m.X >= bp.X and m.X <= bp.X + bs.X and m.Y >= bp.Y and m.Y <= bp.Y + bs.Y
+			if not inList and not inBtn then
+				closeList()
+			end
 		end)
 	
 		return row
@@ -976,17 +1024,24 @@ __modules["controls/Slider"] = function(__require)
 		}
 	
 		local function updateFromX(inputX)
-			local rel = math.clamp((inputX - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
+			local getter = input.GetMouseLocationGui or input.GetMouseLocation
+			local mouseX = inputX
+			if mouseX == nil then
+				mouseX = getter().X
+			end
+			local rel = math.clamp((mouseX - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
 			apply(min + (max - min) * rel, true)
 		end
 	
 		hub._pageMaid:Connect(track.MouseButton1Down, function()
 			dragging = true
-			updateFromX(input.GetMouseLocation().X)
+			local getter = input.GetMouseLocationGui or input.GetMouseLocation
+			updateFromX(getter().X)
 		end)
 		hub._pageMaid:Connect(input.InputChanged, function(inp)
 			if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
-				updateFromX(inp.Position.X)
+				local getter = input.GetMouseLocationGui or input.GetMouseLocation
+				updateFromX(getter().X)
 			end
 		end)
 		hub._pageMaid:Connect(input.InputEnded, function(inp)
@@ -1178,6 +1233,7 @@ end
 
 __modules["hub/MawyxxHub"] = function(__require)
 	-- Hub class: Tab → Group → Controls. Public API + lifecycle.
+	-- Batch updates, unique flags, remove*, applyTheme (PRIME contract surface).
 	
 	local Defaults = __require("config/Defaults")
 	local Merge = __require("config/Merge")
@@ -1210,11 +1266,28 @@ __modules["hub/MawyxxHub"] = function(__require)
 		return base
 	end
 	
+	local function scheduleRefresh(hub, wantSidebar)
+		if (hub._batchDepth or 0) > 0 then
+			hub._pendingRefresh = true
+			if wantSidebar then
+				hub._pendingSidebar = true
+			end
+			return
+		end
+		hub:_refreshPages()
+		if wantSidebar then
+			hub:_renderSidebar()
+		end
+	end
+	
 	local function appendControl(hub, group, el)
 		Validate.alive(hub)
 		Validate.group(group)
+		if el.flag then
+			Validate.flagUnique(hub, el.flag)
+		end
 		table.insert(group.elements, el)
-		hub:_refreshPages()
+		scheduleRefresh(hub, false)
 		return el
 	end
 	
@@ -1226,6 +1299,9 @@ __modules["hub/MawyxxHub"] = function(__require)
 		self.activeTab = nil
 		self._destroyed = false
 		self._bindings = {}
+		self._batchDepth = 0
+		self._pendingRefresh = false
+		self._pendingSidebar = false
 		self.searchQuery = ""
 		self._maid = Maid.new()
 		self._pageMaid = Maid.new()
@@ -1240,6 +1316,30 @@ __modules["hub/MawyxxHub"] = function(__require)
 		Shortcuts.setup(self)
 		self:_renderSidebar()
 		return self
+	end
+	
+	--- Batch structural changes into one refresh (call endUpdate when done).
+	function MawyxxHub:beginUpdate()
+		Validate.alive(self)
+		self._batchDepth += 1
+	end
+	
+	function MawyxxHub:endUpdate()
+		Validate.alive(self)
+		self._batchDepth = math.max(0, (self._batchDepth or 0) - 1)
+		if self._batchDepth > 0 then
+			return
+		end
+		local needPages = self._pendingRefresh
+		local needSidebar = self._pendingSidebar
+		self._pendingRefresh = false
+		self._pendingSidebar = false
+		if needPages then
+			self:_refreshPages()
+		end
+		if needSidebar then
+			self:_renderSidebar()
+		end
 	end
 	
 	function MawyxxHub:tween(object, properties, info)
@@ -1269,10 +1369,11 @@ __modules["hub/MawyxxHub"] = function(__require)
 		Validate.label(name)
 		local tab = Model.attachGroupsAlias(Model.newTab(name))
 		table.insert(self.tabs, tab)
-		self:_renderSidebar()
 		if #self.tabs == 1 then
-			self:activateTab(tab)
+			tab.active = true
+			self.activeTab = tab
 		end
+		scheduleRefresh(self, true)
 		return tab
 	end
 	
@@ -1284,7 +1385,16 @@ __modules["hub/MawyxxHub"] = function(__require)
 		end
 		tab.active = true
 		self.activeTab = tab
-		self:_refreshPages()
+	
+		-- Fast path: flip page visibility without full rebuild
+		if self.pages and next(self.pages) ~= nil then
+			for t, page in pairs(self.pages) do
+				page.Visible = t == tab
+			end
+			Sidebar.updateHighlight(self)
+			return
+		end
+		scheduleRefresh(self, false)
 	end
 	
 	--- Explicit group by text name only (equal width, height from controls).
@@ -1294,7 +1404,7 @@ __modules["hub/MawyxxHub"] = function(__require)
 		Validate.label(name)
 		local group = Model.newGroup(name)
 		table.insert(tab.groups, group)
-		self:_refreshPages()
+		scheduleRefresh(self, false)
 		return group
 	end
 	
@@ -1388,7 +1498,84 @@ __modules["hub/MawyxxHub"] = function(__require)
 			binding.apply(value)
 			return
 		end
-		self:_refreshPages()
+		scheduleRefresh(self, false)
+	end
+	
+	--- Remove a stateful control by flag. Returns true if removed.
+	function MawyxxHub:removeControl(flag)
+		Validate.alive(self)
+		Validate.flag(flag)
+		for _, tab in ipairs(self.tabs) do
+			for _, group in ipairs(tab.groups or {}) do
+				for i, el in ipairs(group.elements) do
+					if el.flag == flag then
+						table.remove(group.elements, i)
+						self._bindings[flag] = nil
+						scheduleRefresh(self, false)
+						return true
+					end
+				end
+			end
+		end
+		return false
+	end
+	
+	--- Remove a group from its tab.
+	function MawyxxHub:removeGroup(tab, group)
+		Validate.alive(self)
+		Validate.tab(tab)
+		Validate.group(group)
+		local groups = tab.groups or {}
+		for i, g in ipairs(groups) do
+			if g == group then
+				table.remove(groups, i)
+				scheduleRefresh(self, false)
+				return true
+			end
+		end
+		return false
+	end
+	
+	--- Remove a tab (and its groups). Activates first remaining tab if needed.
+	function MawyxxHub:removeTab(tab)
+		Validate.alive(self)
+		Validate.tab(tab)
+		for i, t in ipairs(self.tabs) do
+			if t == tab then
+				table.remove(self.tabs, i)
+				if self.activeTab == tab then
+					self.activeTab = self.tabs[1]
+					if self.activeTab then
+						self.activeTab.active = true
+					end
+				end
+				scheduleRefresh(self, true)
+				return true
+			end
+		end
+		return false
+	end
+	
+	--- Merge color overrides and rebuild visible chrome.
+	function MawyxxHub:applyTheme(partialColors)
+		Validate.alive(self)
+		Validate.expectTable(partialColors, "Theme.Colors", "partialColors must be a table")
+		for k, v in pairs(partialColors) do
+			self.config.colors[k] = v
+		end
+		if self.window and partialColors.bg then
+			self.window.BackgroundColor3 = partialColors.bg
+		end
+		if self.sidebar and partialColors.bg then
+			self.sidebar.BackgroundColor3 = partialColors.bg
+		end
+		if self.topbar and partialColors.bg then
+			self.topbar.BackgroundColor3 = partialColors.bg
+		end
+		if self.content and partialColors.bg then
+			self.content.BackgroundColor3 = partialColors.bg
+		end
+		scheduleRefresh(self, true)
 	end
 	
 	function MawyxxHub:Destroy()
@@ -1577,8 +1764,28 @@ __modules["model/Validate"] = function(__require)
 		Errors.expect(type(flag) == "string" and flag ~= "", "Validate.Flag", "flag must be a non-empty string")
 	end
 	
+	function Validate.flagUnique(hub, flag)
+		Validate.flag(flag)
+		Errors.expect(type(hub) == "table" and type(hub.tabs) == "table", "Validate.FlagUnique", "hub required")
+		for _, tab in ipairs(hub.tabs) do
+			for _, group in ipairs(tab.groups or tab.sections or {}) do
+				for _, el in ipairs(group.elements or {}) do
+					Errors.expect(
+						el.flag ~= flag,
+						"Validate.FlagUnique",
+						("duplicate flag %q — labels may repeat, flags must be unique"):format(flag)
+					)
+				end
+			end
+		end
+	end
+	
 	function Validate.label(label)
 		Errors.expect(type(label) == "string" and label ~= "", "Validate.Label", "label must be a non-empty string")
+	end
+	
+	function Validate.expectTable(value, ruleId, message)
+		Errors.expect(type(value) == "table", ruleId, message)
 	end
 	
 	function Validate.sliderRange(min, max, step)
@@ -1711,17 +1918,20 @@ __modules["navigation/Pages"] = function(__require)
 		})
 	end
 	
+	local function layoutPads(gcfg, fallbackPad)
+		local padL = gcfg.paddingLeft or fallbackPad or 14
+		local padR = gcfg.paddingRight or 10
+		local scrollBar = gcfg.scrollBarGutter or 6
+		return math.max(padL, 8), math.max(padR, 0), math.max(scrollBar, 0)
+	end
+	
 	--- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
-	--- Right edge of column 2 keeps exactly 10px to the content end (plus scrollbar gutter).
-	local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
+	local function layoutTwoColumns(scroll, row, left, right, gutter, padL, padR, scrollBar)
 		local viewW = scroll.AbsoluteSize.X
 		if viewW <= 1 then
 			return false
 		end
 		local g = math.max(gutter, 8)
-		local padL = math.max(pad, 8)
-		local padR = 10
-		local scrollBar = 6
 		local usable = math.max(viewW - padL - padR - scrollBar, 80)
 		local colW = math.max(math.floor((usable - g) / 2), 40)
 	
@@ -1736,6 +1946,10 @@ __modules["navigation/Pages"] = function(__require)
 	end
 	
 	function Pages.render(hub)
+		if hub._suspendLayout then
+			return
+		end
+	
 		hub._pageMaid:DoCleaning()
 		hub._bindings = {}
 	
@@ -1754,6 +1968,7 @@ __modules["navigation/Pages"] = function(__require)
 		local gcfg = hub.config.group or {}
 		local gap = gcfg.gap or 7
 		local pad = gcfg.padding or 14
+		local padL, padR, scrollBar = layoutPads(gcfg, pad)
 		local columns = math.max(1, gcfg.columns or 2)
 		local gutter = gcfg.gutter or 12
 	
@@ -1780,8 +1995,6 @@ __modules["navigation/Pages"] = function(__require)
 				ScrollingDirection = Enum.ScrollingDirection.Y,
 				ClipsDescendants = true,
 			})
-			-- Vertical pad only via top offset on row; horizontal pad baked into layoutTwoColumns.
-			-- (UIPadding on ScrollingFrame does not reliably shrink child AbsoluteSize.)
 	
 			local row = Create("Frame", {
 				Name = "Columns",
@@ -1806,13 +2019,16 @@ __modules["navigation/Pages"] = function(__require)
 				cols[1] = col
 	
 				local function relayout1()
+					if hub._suspendLayout then
+						return
+					end
 					local viewW = scroll.AbsoluteSize.X
 					if viewW <= 0 then
 						return
 					end
-					local usable = math.max(viewW - pad * 2 - 6, 80)
+					local usable = math.max(viewW - padL - padR - scrollBar, 80)
 					row.Size = UDim2.new(0, usable, 0, 0)
-					row.Position = UDim2.new(0, pad, 0, pad)
+					row.Position = UDim2.new(0, padL, 0, padL)
 					col.Size = UDim2.new(1, 0, 0, 0)
 				end
 				hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout1)
@@ -1839,7 +2055,10 @@ __modules["navigation/Pages"] = function(__require)
 				cols[2] = right
 	
 				local function relayout()
-					layoutTwoColumns(scroll, row, left, right, gutter, pad)
+					if hub._suspendLayout then
+						return
+					end
+					layoutTwoColumns(scroll, row, left, right, gutter, padL, padR, scrollBar)
 				end
 				hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout)
 				hub._pageMaid:Connect(page:GetPropertyChangedSignal("AbsoluteSize"), relayout)
@@ -1853,10 +2072,10 @@ __modules["navigation/Pages"] = function(__require)
 			else
 				Create("UIPadding", {
 					Parent = scroll,
-					PaddingLeft = UDim.new(0, pad),
-					PaddingRight = UDim.new(0, pad),
-					PaddingTop = UDim.new(0, pad),
-					PaddingBottom = UDim.new(0, pad),
+					PaddingLeft = UDim.new(0, padL),
+					PaddingRight = UDim.new(0, padR),
+					PaddingTop = UDim.new(0, padL),
+					PaddingBottom = UDim.new(0, padL),
 				})
 				local shrink = math.ceil(gutter * (columns - 1) / columns)
 				row.Size = UDim2.new(1, 0, 0, 0)
@@ -2501,9 +2720,11 @@ __modules["window/Shortcuts"] = function(__require)
 			hub.window.Position = UDim2.fromScale(0.5, 0.5)
 	
 			if open then
+				hub._suspendLayout = true
 				hub.window.Visible = true
 				hub.window.Size = STRIP
 				-- Width already full — layout columns once, height reveal only clips
+				hub._suspendLayout = false
 				runLayouts()
 				task.defer(runLayouts)
 	
@@ -2517,15 +2738,18 @@ __modules["window/Shortcuts"] = function(__require)
 				task.delay(OPEN_MS, function()
 					if token == animToken and not hub._destroyed then
 						hub.window.Size = FULL
+						hub._suspendLayout = false
 						runLayouts()
 					end
 				end)
 			else
 				clearSearch()
+				hub._suspendLayout = true
 	
 				if hub.config.animations == false then
 					hub.window.Size = STRIP
 					hub.window.Visible = false
+					hub._suspendLayout = false
 					return
 				end
 	
@@ -2538,6 +2762,7 @@ __modules["window/Shortcuts"] = function(__require)
 						hub.window.Size = STRIP
 						hub.window.Visible = false
 					end
+					hub._suspendLayout = false
 				end)
 			end
 		end
@@ -2552,7 +2777,8 @@ __modules["window/Shortcuts"] = function(__require)
 			if hub._destroyed then
 				return
 			end
-			if inp.KeyCode == Enum.KeyCode.RightControl then
+			local key = hub.config.toggleKey or Enum.KeyCode.RightControl
+			if inp.KeyCode == key then
 				setOpen(not visible)
 			end
 		end)
@@ -2561,4 +2787,118 @@ __modules["window/Shortcuts"] = function(__require)
 	return Shortcuts
 end
 
-return __require("init")
+
+-- ===== INLINE DEMO =====
+-- Inline demo body (appended by bundle into dist runner). No HttpGet.
+
+print("[MawyxxHub] BUILD=UI_V19_SINGLEFILE")
+
+local MawyxxHub = __require("init")
+assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")
+
+local hub = MawyxxHub.new({
+	window = { title = "MawyxxHub Demo", width = 920, height = 600, sidebarWidth = 156 },
+	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
+	startHidden = true,
+	toggleKey = Enum.KeyCode.RightControl,
+	group = {
+		columns = 2,
+		gap = 10,
+		gutter = 14,
+		padding = 14,
+		paddingLeft = 14,
+		paddingRight = 10,
+		innerPadding = 12,
+	},
+})
+
+-- One refresh after the full tree is declared
+hub:beginUpdate()
+
+local combat = hub:addTab("Combat")
+local visuals = hub:addTab("Visuals")
+local player = hub:addTab("Player")
+local misc = hub:addTab("Misc")
+
+local aim = hub:addGroup(combat, "Aim")
+local guns = hub:addGroup(combat, "Weapons")
+local rage = hub:addGroup(combat, "Rage")
+
+hub:addToggle(aim, "Enabled", "demo_aim_on", false)
+hub:addSlider(aim, "FOV", "demo_aim_fov", 10, 180, 1, 75)
+hub:addDropdown(aim, "Target", "demo_aim_target", { "Closest", "Lowest HP", "Crosshair" }, "Closest")
+hub:addColorPicker(aim, "FOV color", "demo_aim_color", Color3.fromRGB(117, 72, 255))
+
+hub:addToggle(guns, "No recoil", "demo_norecoil", true)
+hub:addSlider(guns, "Spread", "demo_spread", 0, 100, 1, 20)
+hub:addButton(guns, "Reload config", function() end)
+
+hub:addToggle(rage, "Auto fire", "demo_autofire", false)
+hub:addToggle(rage, "Silent", "demo_silent", false)
+hub:addSlider(rage, "Hit chance", "demo_hitchance", 0, 100, 5, 80)
+
+local esp = hub:addGroup(visuals, "ESP")
+local world = hub:addGroup(visuals, "World")
+
+hub:addToggle(esp, "Boxes", "demo_esp_box", true)
+hub:addToggle(esp, "Names", "demo_esp_names", true)
+hub:addToggle(esp, "Tracers", "demo_esp_tracers", false)
+hub:addColorPicker(esp, "Box color", "demo_esp_color", Color3.fromRGB(80, 200, 120))
+hub:addDropdown(esp, "Box style", "demo_esp_style", { "Full", "Corner", "3D" }, "Corner")
+
+hub:addToggle(world, "Fullbright", "demo_fullbright", false)
+hub:addSlider(world, "Fog", "demo_fog", 0, 100, 1, 40)
+hub:addButton(world, "Reset lighting", function()
+	hub:set("demo_fog", 40)
+	hub:set("demo_fullbright", false)
+end)
+
+local move = hub:addGroup(player, "Movement")
+local cam = hub:addGroup(player, "Camera")
+
+hub:addToggle(move, "Speed", "demo_speed_on", false)
+hub:addSlider(move, "WalkSpeed", "demo_walkspeed", 16, 120, 1, 16)
+hub:addToggle(move, "Fly", "demo_fly", false)
+hub:addSlider(move, "Fly speed", "demo_flyspeed", 10, 200, 5, 50)
+
+hub:addSlider(cam, "FOV", "demo_cam_fov", 50, 120, 1, 70)
+hub:addToggle(cam, "Third person", "demo_thirdperson", false)
+
+local ui = hub:addGroup(misc, "UI")
+local danger = hub:addGroup(misc, "Session")
+
+hub:addToggle(ui, "Animations", "demo_ui_anim", true)
+hub:addDropdown(ui, "Accent", "demo_accent", { "Purple", "Blue", "Red" }, "Purple", function(name)
+	local accents = {
+		Purple = {
+			purple = Color3.fromRGB(117, 72, 255),
+			purpleHover = Color3.fromRGB(132, 91, 255),
+			purpleDark = Color3.fromRGB(87, 49, 190),
+		},
+		Blue = {
+			purple = Color3.fromRGB(70, 140, 255),
+			purpleHover = Color3.fromRGB(100, 160, 255),
+			purpleDark = Color3.fromRGB(40, 90, 190),
+		},
+		Red = {
+			purple = Color3.fromRGB(220, 70, 70),
+			purpleHover = Color3.fromRGB(240, 100, 100),
+			purpleDark = Color3.fromRGB(160, 40, 40),
+		},
+	}
+	local theme = accents[name]
+	if theme then
+		hub:applyTheme(theme)
+	end
+end)
+hub:addButton(ui, "Print flags", function()
+	print("aim", hub:get("demo_aim_on"), "fov", hub:get("demo_aim_fov"))
+end)
+
+hub:addButton(danger, "Destroy hub", function()
+	hub:Destroy()
+end)
+
+hub:endUpdate()
+
+print("[MawyxxHub] Demo ready — RightControl — click color square for HSV picker")
