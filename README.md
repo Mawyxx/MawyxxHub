@@ -11,7 +11,8 @@ Repo: https://github.com/Mawyxx/MawyxxHub
 One file — no versions, no prefixes:
 
 ```lua
-local MawyxxHub = loadstring(game:HttpGet(
+local ls = loadstring or load
+local MawyxxHub = ls(game:HttpGet(
 	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua"
 ))()
 
@@ -28,12 +29,15 @@ hub:endUpdate()
 
 **RightControl** opens/closes the menu (change with `toggleKey` in config).
 
+> If you see `attempt to call a nil value` on line 1, your executor has no `loadstring` — use `local ls = loadstring or load` as above.
+
 ---
 
 ## Optional demo
 
 ```lua
-loadstring(game:HttpGet(
+local ls = loadstring or load
+ls(game:HttpGet(
 	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo.lua"
 ))()
 ```
