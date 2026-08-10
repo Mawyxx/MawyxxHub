@@ -36,12 +36,11 @@ hub:endUpdate()
 ## Optional demo
 
 ```lua
-(loadstring or load)(game:HttpGet(
-	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo.lua?t=" .. tostring(tick())
+local ls = loadstring or load
+ls(game:HttpGet(
+	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo.lua"
 ))()
 ```
-
-`?t=tick()` bypasses executor HttpGet cache so you always get the latest `demo.lua`.
 
 ---
 

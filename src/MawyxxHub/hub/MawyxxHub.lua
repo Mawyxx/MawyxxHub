@@ -10,6 +10,7 @@ local DefaultDeps = require(script.Parent.Parent.adapters.DefaultDeps)
 local WindowBuild = require(script.Parent.Parent.window.Build)
 local Drag = require(script.Parent.Parent.window.Drag)
 local Shortcuts = require(script.Parent.Parent.window.Shortcuts)
+local CustomCursor = require(script.Parent.Parent.window.CustomCursor)
 local Sidebar = require(script.Parent.Parent.navigation.Sidebar)
 local Pages = require(script.Parent.Parent.navigation.Pages)
 
@@ -80,6 +81,7 @@ function MawyxxHub.new(userConfig, deps)
 	WindowBuild.window(self)
 	Drag.setup(self)
 	Shortcuts.setup(self)
+	CustomCursor.setup(self)
 	self:_renderSidebar()
 	return self
 end

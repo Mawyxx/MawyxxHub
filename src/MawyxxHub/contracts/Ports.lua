@@ -4,7 +4,9 @@
 	IInputService:
 	  GetMouseLocation() -> Vector2
 	  GetMouseLocationGui() -> Vector2  (AbsolutePosition space)
+	  SetMouseIconEnabled(boolean)?
 	  InputBegan, InputChanged, InputEnded : RBXScriptSignal
+	  RenderStepped? : RBXScriptSignal
 
 	IGuiHost:
 	  GetPlayerGui() -> PlayerGui

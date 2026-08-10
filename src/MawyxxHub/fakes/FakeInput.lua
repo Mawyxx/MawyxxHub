@@ -42,6 +42,8 @@ function FakeInput.new()
 	function api.SetMouse(x, y)
 		mouse = Vector2.new(x, y)
 	end
+	function api.SetMouseIconEnabled(_enabled) end
+	api.RenderStepped = makeSignal()
 	return api
 end
 
