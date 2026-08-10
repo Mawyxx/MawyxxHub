@@ -12,9 +12,9 @@ local Defaults = {
 		surface = Color3.fromRGB(18, 18, 18),
 		surface2 = Color3.fromRGB(28, 28, 30),
 		surfaceHover = Color3.fromRGB(40, 40, 44),
-		-- Off toggles + slider tracks (lighter so they read on dark cards)
-		control = Color3.fromRGB(52, 52, 58),
-		controlHover = Color3.fromRGB(64, 64, 72),
+		-- Shared interactive field color (dropdown / button / search / off-toggle / slider track)
+		control = Color3.fromRGB(58, 58, 66),
+		controlHover = Color3.fromRGB(72, 72, 82),
 		border = Color3.fromRGB(55, 55, 62),
 		borderSoft = Color3.fromRGB(44, 44, 50),
 		text = Color3.fromRGB(235, 235, 240),

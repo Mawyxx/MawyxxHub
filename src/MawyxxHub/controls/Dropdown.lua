@@ -29,17 +29,20 @@ function Dropdown.build(hub, element)
 	label.Size = UDim2.new(1, 0, 0, 18)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 
+	local control = config.colors.control or config.colors.surface2
+	local controlHover = config.colors.controlHover or config.colors.surfaceHover
+
 	local btn = Create("TextButton", {
 		Parent = row,
 		Position = UDim2.new(0, 0, 0, 20),
 		Size = UDim2.new(1, 0, 0, 30),
-		BackgroundColor3 = config.colors.surface,
+		BackgroundColor3 = control,
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 21,
 	})
-	Stroke(btn, config.colors.borderSoft, 1)
+	Stroke(btn, config.colors.border, 1)
 
 	local currentText = TextLabel(btn, tostring(selected), 14, config.colors.text, config.font)
 	currentText.Position = UDim2.new(0, 9, 0, 0)
@@ -58,7 +61,7 @@ function Dropdown.build(hub, element)
 		Name = "DropdownList",
 		Parent = hub.overlay,
 		Size = UDim2.new(0, 100, 0, listH),
-		BackgroundColor3 = config.colors.surface,
+		BackgroundColor3 = control,
 		BorderSizePixel = 0,
 		Visible = false,
 		ZIndex = 250,
@@ -104,7 +107,7 @@ function Dropdown.build(hub, element)
 		local optBtn = Create("TextButton", {
 			Parent = list,
 			Size = UDim2.new(1, 0, 0, rowH),
-			BackgroundColor3 = config.colors.surface,
+			BackgroundColor3 = control,
 			BorderSizePixel = 0,
 			Text = tostring(opt),
 			TextColor3 = config.colors.textSoft,
@@ -117,13 +120,13 @@ function Dropdown.build(hub, element)
 		Padding(optBtn, 9, 5, 0, 0)
 		hub._pageMaid:Connect(optBtn.MouseEnter, function()
 			hub:tween(optBtn, {
-				BackgroundColor3 = config.colors.surfaceHover,
+				BackgroundColor3 = controlHover,
 				TextColor3 = config.colors.text,
 			})
 		end)
 		hub._pageMaid:Connect(optBtn.MouseLeave, function()
 			hub:tween(optBtn, {
-				BackgroundColor3 = config.colors.surface,
+				BackgroundColor3 = control,
 				TextColor3 = config.colors.textSoft,
 			})
 		end)

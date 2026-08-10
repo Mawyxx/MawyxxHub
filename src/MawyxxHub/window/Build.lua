@@ -136,7 +136,7 @@ function Build.window(hub)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, -math.floor(closeReserve / 2), 0.5, 0),
 		Size = UDim2.new(1, -(closeReserve + 24), 0, 34),
-		BackgroundColor3 = config.colors.surface,
+		BackgroundColor3 = config.colors.control or config.colors.surface,
 		Text = "",
 		PlaceholderText = searchEnabled and placeholder or "Search disabled",
 		PlaceholderColor3 = config.colors.textMuted,
@@ -150,7 +150,7 @@ function Build.window(hub)
 		TextYAlignment = Enum.TextYAlignment.Center,
 		TextEditable = searchEnabled,
 	})
-	Stroke(search, config.colors.borderSoft, 1)
+	Stroke(search, config.colors.border, 1)
 	hub.searchBox = search
 
 	if searchEnabled then

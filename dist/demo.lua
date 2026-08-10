@@ -143,9 +143,9 @@ __modules["config/Defaults"] = function(__require)
 			surface = Color3.fromRGB(18, 18, 18),
 			surface2 = Color3.fromRGB(28, 28, 30),
 			surfaceHover = Color3.fromRGB(40, 40, 44),
-			-- Off toggles + slider tracks (lighter so they read on dark cards)
-			control = Color3.fromRGB(52, 52, 58),
-			controlHover = Color3.fromRGB(64, 64, 72),
+			-- Shared interactive field color (dropdown / button / search / off-toggle / slider track)
+			control = Color3.fromRGB(58, 58, 66),
+			controlHover = Color3.fromRGB(72, 72, 82),
 			border = Color3.fromRGB(55, 55, 62),
 			borderSoft = Color3.fromRGB(44, 44, 50),
 			text = Color3.fromRGB(235, 235, 240),
@@ -268,11 +268,14 @@ __modules["controls/Button"] = function(__require)
 			BorderSizePixel = 0,
 		})
 	
+		local control = config.colors.control or config.colors.surface
+		local controlHover = config.colors.controlHover or config.colors.surfaceHover
+	
 		local btn = Create("TextButton", {
 			Parent = row,
 			Position = UDim2.new(0.2, 0, 0, 0),
 			Size = UDim2.new(0.6, 0, 1, 0),
-			BackgroundColor3 = config.colors.surface,
+			BackgroundColor3 = control,
 			Text = element.label,
 			TextColor3 = config.colors.text,
 			TextSize = 14,
@@ -280,12 +283,12 @@ __modules["controls/Button"] = function(__require)
 			BorderSizePixel = 0,
 			AutoButtonColor = false,
 		})
-		Stroke(btn, config.colors.borderSoft, 1)
+		Stroke(btn, config.colors.border, 1)
 		hub._pageMaid:Connect(btn.MouseEnter, function()
-			hub:tween(btn, { BackgroundColor3 = config.colors.surfaceHover })
+			hub:tween(btn, { BackgroundColor3 = controlHover })
 		end)
 		hub._pageMaid:Connect(btn.MouseLeave, function()
-			hub:tween(btn, { BackgroundColor3 = config.colors.surface })
+			hub:tween(btn, { BackgroundColor3 = control })
 		end)
 		hub._pageMaid:Connect(btn.MouseButton1Click, function()
 			if element.callback then
@@ -535,7 +538,7 @@ __modules["controls/ColorPicker"] = function(__require)
 			Parent = panel,
 			Position = UDim2.fromOffset(PANEL_PAD, btnY),
 			Size = UDim2.fromOffset(btnW, BTN_H),
-			BackgroundColor3 = config.colors.surface2,
+			BackgroundColor3 = config.colors.control or config.colors.surface2,
 			BorderSizePixel = 0,
 			Text = "Cancel",
 			TextColor3 = config.colors.textSoft,
@@ -544,7 +547,7 @@ __modules["controls/ColorPicker"] = function(__require)
 			AutoButtonColor = false,
 			ZIndex = 12,
 		})
-		Stroke(cancelBtn, config.colors.borderSoft, 1)
+		Stroke(cancelBtn, config.colors.border, 1)
 		Corner(cancelBtn, 4)
 	
 		local okBtn = Create("TextButton", {
@@ -710,10 +713,10 @@ __modules["controls/ColorPicker"] = function(__require)
 		end)
 	
 		hub._pageMaid:Connect(cancelBtn.MouseEnter, function()
-			hub:tween(cancelBtn, { BackgroundColor3 = config.colors.surfaceHover })
+			hub:tween(cancelBtn, { BackgroundColor3 = config.colors.controlHover or config.colors.surfaceHover })
 		end)
 		hub._pageMaid:Connect(cancelBtn.MouseLeave, function()
-			hub:tween(cancelBtn, { BackgroundColor3 = config.colors.surface2 })
+			hub:tween(cancelBtn, { BackgroundColor3 = config.colors.control or config.colors.surface2 })
 		end)
 		hub._pageMaid:Connect(okBtn.MouseEnter, function()
 			hub:tween(okBtn, { BackgroundColor3 = config.colors.purple })
@@ -761,17 +764,20 @@ __modules["controls/Dropdown"] = function(__require)
 		label.Size = UDim2.new(1, 0, 0, 18)
 		label.TextXAlignment = Enum.TextXAlignment.Left
 	
+		local control = config.colors.control or config.colors.surface2
+		local controlHover = config.colors.controlHover or config.colors.surfaceHover
+	
 		local btn = Create("TextButton", {
 			Parent = row,
 			Position = UDim2.new(0, 0, 0, 20),
 			Size = UDim2.new(1, 0, 0, 30),
-			BackgroundColor3 = config.colors.surface,
+			BackgroundColor3 = control,
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
 			ZIndex = 21,
 		})
-		Stroke(btn, config.colors.borderSoft, 1)
+		Stroke(btn, config.colors.border, 1)
 	
 		local currentText = TextLabel(btn, tostring(selected), 14, config.colors.text, config.font)
 		currentText.Position = UDim2.new(0, 9, 0, 0)
@@ -790,7 +796,7 @@ __modules["controls/Dropdown"] = function(__require)
 			Name = "DropdownList",
 			Parent = hub.overlay,
 			Size = UDim2.new(0, 100, 0, listH),
-			BackgroundColor3 = config.colors.surface,
+			BackgroundColor3 = control,
 			BorderSizePixel = 0,
 			Visible = false,
 			ZIndex = 250,
@@ -836,7 +842,7 @@ __modules["controls/Dropdown"] = function(__require)
 			local optBtn = Create("TextButton", {
 				Parent = list,
 				Size = UDim2.new(1, 0, 0, rowH),
-				BackgroundColor3 = config.colors.surface,
+				BackgroundColor3 = control,
 				BorderSizePixel = 0,
 				Text = tostring(opt),
 				TextColor3 = config.colors.textSoft,
@@ -849,13 +855,13 @@ __modules["controls/Dropdown"] = function(__require)
 			Padding(optBtn, 9, 5, 0, 0)
 			hub._pageMaid:Connect(optBtn.MouseEnter, function()
 				hub:tween(optBtn, {
-					BackgroundColor3 = config.colors.surfaceHover,
+					BackgroundColor3 = controlHover,
 					TextColor3 = config.colors.text,
 				})
 			end)
 			hub._pageMaid:Connect(optBtn.MouseLeave, function()
 				hub:tween(optBtn, {
-					BackgroundColor3 = config.colors.surface,
+					BackgroundColor3 = control,
 					TextColor3 = config.colors.textSoft,
 				})
 			end)
@@ -2487,7 +2493,7 @@ __modules["window/Build"] = function(__require)
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.new(0.5, -math.floor(closeReserve / 2), 0.5, 0),
 			Size = UDim2.new(1, -(closeReserve + 24), 0, 34),
-			BackgroundColor3 = config.colors.surface,
+			BackgroundColor3 = config.colors.control or config.colors.surface,
 			Text = "",
 			PlaceholderText = searchEnabled and placeholder or "Search disabled",
 			PlaceholderColor3 = config.colors.textMuted,
@@ -2501,7 +2507,7 @@ __modules["window/Build"] = function(__require)
 			TextYAlignment = Enum.TextYAlignment.Center,
 			TextEditable = searchEnabled,
 		})
-		Stroke(search, config.colors.borderSoft, 1)
+		Stroke(search, config.colors.border, 1)
 		hub.searchBox = search
 	
 		if searchEnabled then

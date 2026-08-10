@@ -233,7 +233,7 @@ function ColorPicker.build(hub, element)
 		Parent = panel,
 		Position = UDim2.fromOffset(PANEL_PAD, btnY),
 		Size = UDim2.fromOffset(btnW, BTN_H),
-		BackgroundColor3 = config.colors.surface2,
+		BackgroundColor3 = config.colors.control or config.colors.surface2,
 		BorderSizePixel = 0,
 		Text = "Cancel",
 		TextColor3 = config.colors.textSoft,
@@ -242,7 +242,7 @@ function ColorPicker.build(hub, element)
 		AutoButtonColor = false,
 		ZIndex = 12,
 	})
-	Stroke(cancelBtn, config.colors.borderSoft, 1)
+	Stroke(cancelBtn, config.colors.border, 1)
 	Corner(cancelBtn, 4)
 
 	local okBtn = Create("TextButton", {
@@ -408,10 +408,10 @@ function ColorPicker.build(hub, element)
 	end)
 
 	hub._pageMaid:Connect(cancelBtn.MouseEnter, function()
-		hub:tween(cancelBtn, { BackgroundColor3 = config.colors.surfaceHover })
+		hub:tween(cancelBtn, { BackgroundColor3 = config.colors.controlHover or config.colors.surfaceHover })
 	end)
 	hub._pageMaid:Connect(cancelBtn.MouseLeave, function()
-		hub:tween(cancelBtn, { BackgroundColor3 = config.colors.surface2 })
+		hub:tween(cancelBtn, { BackgroundColor3 = config.colors.control or config.colors.surface2 })
 	end)
 	hub._pageMaid:Connect(okBtn.MouseEnter, function()
 		hub:tween(okBtn, { BackgroundColor3 = config.colors.purple })
