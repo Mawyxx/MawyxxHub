@@ -5,7 +5,6 @@ local CreateMod = require(script.Parent.Parent.visual.Create)
 local Create = CreateMod.Create
 local Stroke = CreateMod.Stroke
 local Corner = CreateMod.Corner
-local TextLabel = CreateMod.TextLabel
 
 local PALETTE = {
 	Color3.fromRGB(255, 255, 255),

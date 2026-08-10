@@ -292,7 +292,6 @@ __modules["controls/ColorPicker"] = function(__require)
 	local Create = CreateMod.Create
 	local Stroke = CreateMod.Stroke
 	local Corner = CreateMod.Corner
-	local TextLabel = CreateMod.TextLabel
 	
 	local PALETTE = {
 		Color3.fromRGB(255, 255, 255),
