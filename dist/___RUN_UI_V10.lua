@@ -1677,19 +1677,21 @@ __modules["navigation/Pages"] = function(__require)
 	end
 	
 	--- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
+	--- Right edge of column 2 keeps exactly 10px to the content end (plus scrollbar gutter).
 	local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
 		local viewW = scroll.AbsoluteSize.X
 		if viewW <= 1 then
 			return false
 		end
 		local g = math.max(gutter, 8)
-		local p = math.max(pad, 8)
+		local padL = math.max(pad, 8)
+		local padR = 10
 		local scrollBar = 6
-		local usable = math.max(viewW - p * 2 - scrollBar, 80)
+		local usable = math.max(viewW - padL - padR - scrollBar, 80)
 		local colW = math.max(math.floor((usable - g) / 2), 40)
 	
 		row.Size = UDim2.new(0, usable, 0, 0)
-		row.Position = UDim2.new(0, p, 0, p)
+		row.Position = UDim2.new(0, padL, 0, padL)
 	
 		left.Size = UDim2.new(0, colW, 0, 0)
 		left.Position = UDim2.new(0, 0, 0, 0)
@@ -2219,10 +2221,13 @@ __modules["window/Build"] = function(__require)
 		local searchEnabled = config.search == nil or config.search.enabled ~= false
 		local placeholder = (config.search and config.search.placeholder) or "Search"
 	
+		-- Close reserves right side; search is centered in the remaining topbar space
+		local closeReserve = 46
 		local search = Create("TextBox", {
 			Parent = topbar,
-			Position = UDim2.new(0, 10, 0, 8),
-			Size = UDim2.new(1, -56, 0, 34),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, -math.floor(closeReserve / 2), 0.5, 0),
+			Size = UDim2.new(1, -(closeReserve + 24), 0, 34),
 			BackgroundColor3 = config.colors.surface,
 			Text = "",
 			PlaceholderText = searchEnabled and placeholder or "Search disabled",
@@ -2233,14 +2238,11 @@ __modules["window/Build"] = function(__require)
 			ClearTextOnFocus = false,
 			BorderSizePixel = 0,
 			TextXAlignment = Enum.TextXAlignment.Center,
+			TextYAlignment = Enum.TextYAlignment.Center,
 			TextEditable = searchEnabled,
 		})
 		Stroke(search, config.colors.borderSoft, 1)
 		hub.searchBox = search
-	
-		local searchIcon = TextLabel(topbar, "⌕", 23, config.colors.textSoft, config.font)
-		searchIcon.Position = UDim2.new(0, 18, 0, 7)
-		searchIcon.Size = UDim2.new(0, 25, 0, 35)
 	
 		if searchEnabled then
 			hub._maid:Connect(search:GetPropertyChangedSignal("Text"), function()
@@ -2525,7 +2527,7 @@ end
 -- ===== INLINE DEMO =====
 -- Inline demo body (appended by bundle into dist/___RUN_HSV.lua). No HttpGet.
 
-print("[MawyxxHub] BUILD=UI_V14_SINGLEFILE")
+print("[MawyxxHub] BUILD=UI_V15_SINGLEFILE")
 
 local MawyxxHub = __require("init")
 assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")

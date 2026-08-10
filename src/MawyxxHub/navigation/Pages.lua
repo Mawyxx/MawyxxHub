@@ -17,19 +17,21 @@ local function addColumnList(col, gap)
 end
 
 --- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
+--- Right edge of column 2 keeps exactly 10px to the content end (plus scrollbar gutter).
 local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
 	local viewW = scroll.AbsoluteSize.X
 	if viewW <= 1 then
 		return false
 	end
 	local g = math.max(gutter, 8)
-	local p = math.max(pad, 8)
+	local padL = math.max(pad, 8)
+	local padR = 10
 	local scrollBar = 6
-	local usable = math.max(viewW - p * 2 - scrollBar, 80)
+	local usable = math.max(viewW - padL - padR - scrollBar, 80)
 	local colW = math.max(math.floor((usable - g) / 2), 40)
 
 	row.Size = UDim2.new(0, usable, 0, 0)
-	row.Position = UDim2.new(0, p, 0, p)
+	row.Position = UDim2.new(0, padL, 0, padL)
 
 	left.Size = UDim2.new(0, colW, 0, 0)
 	left.Position = UDim2.new(0, 0, 0, 0)

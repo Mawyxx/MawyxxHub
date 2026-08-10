@@ -129,10 +129,13 @@ function Build.window(hub)
 	local searchEnabled = config.search == nil or config.search.enabled ~= false
 	local placeholder = (config.search and config.search.placeholder) or "Search"
 
+	-- Close reserves right side; search is centered in the remaining topbar space
+	local closeReserve = 46
 	local search = Create("TextBox", {
 		Parent = topbar,
-		Position = UDim2.new(0, 10, 0, 8),
-		Size = UDim2.new(1, -56, 0, 34),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, -math.floor(closeReserve / 2), 0.5, 0),
+		Size = UDim2.new(1, -(closeReserve + 24), 0, 34),
 		BackgroundColor3 = config.colors.surface,
 		Text = "",
 		PlaceholderText = searchEnabled and placeholder or "Search disabled",
@@ -143,14 +146,11 @@ function Build.window(hub)
 		ClearTextOnFocus = false,
 		BorderSizePixel = 0,
 		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Center,
 		TextEditable = searchEnabled,
 	})
 	Stroke(search, config.colors.borderSoft, 1)
 	hub.searchBox = search
-
-	local searchIcon = TextLabel(topbar, "⌕", 23, config.colors.textSoft, config.font)
-	searchIcon.Position = UDim2.new(0, 18, 0, 7)
-	searchIcon.Size = UDim2.new(0, 25, 0, 35)
 
 	if searchEnabled then
 		hub._maid:Connect(search:GetPropertyChangedSignal("Text"), function()
