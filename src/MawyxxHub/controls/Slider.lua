@@ -14,9 +14,13 @@ function Slider.build(hub, element)
 	local max = element.max or 100
 	local step = element.step or 1
 	local val = hub.settings[flag]
-	if val == nil then
-		val = element.default or min
+	if type(val) ~= "number" then
+		val = element.default
 	end
+	if type(val) ~= "number" then
+		val = min
+	end
+	val = math.clamp(val, min, max)
 	hub.deps.settings.Set(hub.settings, flag, val)
 
 	local row = Create("Frame", {

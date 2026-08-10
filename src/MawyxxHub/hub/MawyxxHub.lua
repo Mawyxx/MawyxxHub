@@ -204,6 +204,16 @@ function MawyxxHub:addSlider(group, label, flag, min, max, step, default, callba
 	max = max or 100
 	step = step or 1
 	Validate.sliderRange(min, max, step)
+	if type(default) == "function" then
+		callback = default
+		default = min
+	end
+	if type(default) ~= "number" then
+		default = min
+	end
+	if type(callback) ~= "function" then
+		callback = nil
+	end
 	return appendControl(self, group, {
 		type = "slider",
 		label = label,
@@ -211,7 +221,7 @@ function MawyxxHub:addSlider(group, label, flag, min, max, step, default, callba
 		min = min,
 		max = max,
 		step = step,
-		default = default or min,
+		default = default,
 		callback = callback,
 	})
 end
@@ -252,17 +262,53 @@ function MawyxxHub:addColorPicker(group, label, flag, default, callback)
 end
 
 --- Toggle + color swatch on one row. Two flags: bool + Color3.
+-- Signature: addToggleColor(group, label, flag, colorFlag, defaultOn?, defaultColor?, callback?, colorCallback?)
+-- Also accepts shuffled args (Color3 / function) so misplaced callbacks don't corrupt settings.
 function MawyxxHub:addToggleColor(group, label, flag, colorFlag, defaultOn, defaultColor, callback, colorCallback)
 	Validate.label(label)
 	Validate.flagsDistinct(flag, colorFlag)
 	Validate.flagUnique(self, colorFlag)
+
+	-- Normalize flexible argument order
+	if type(defaultOn) == "function" then
+		-- (..., colorFlag, callback, colorCallback?)
+		colorCallback = defaultColor
+		callback = defaultOn
+		defaultOn = true
+		defaultColor = Color3.new(1, 1, 1)
+	elseif typeof(defaultOn) == "Color3" then
+		-- (..., colorFlag, defaultColor, callback?, colorCallback?)
+		colorCallback = callback
+		callback = defaultColor
+		defaultColor = defaultOn
+		defaultOn = true
+	end
+	if type(defaultColor) == "function" then
+		-- (..., defaultOn, callback, colorCallback?)
+		colorCallback = callback
+		callback = defaultColor
+		defaultColor = Color3.new(1, 1, 1)
+	end
+	if type(callback) ~= "function" then
+		callback = nil
+	end
+	if type(colorCallback) ~= "function" then
+		colorCallback = nil
+	end
+	if type(defaultOn) ~= "boolean" then
+		defaultOn = defaultOn and true or false
+	end
+	if typeof(defaultColor) ~= "Color3" then
+		defaultColor = Color3.new(1, 1, 1)
+	end
+
 	return appendControl(self, group, {
 		type = "togglecolor",
 		label = label,
 		flag = flag,
 		colorFlag = colorFlag,
-		default = defaultOn == nil and false or defaultOn,
-		colorDefault = defaultColor or Color3.new(1, 1, 1),
+		default = defaultOn,
+		colorDefault = defaultColor,
 		callback = callback,
 		colorCallback = colorCallback,
 	})

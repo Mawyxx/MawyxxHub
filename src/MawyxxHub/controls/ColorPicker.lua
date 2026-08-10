@@ -28,8 +28,11 @@ function ColorPicker.mountSwatch(hub, swatch, opts)
 	local input = hub.deps.input
 	local flag = opts.flag
 	local color = hub.settings[flag]
-	if color == nil then
-		color = opts.default or Color3.fromRGB(117, 72, 255)
+	if typeof(color) ~= "Color3" then
+		color = opts.default
+	end
+	if typeof(color) ~= "Color3" then
+		color = Color3.fromRGB(117, 72, 255)
 	end
 	hub.deps.settings.Set(hub.settings, flag, color)
 	swatch.BackgroundColor3 = color
@@ -244,11 +247,14 @@ function ColorPicker.mountSwatch(hub, swatch, opts)
 	end
 
 	local function apply(newColor, fireCallback)
+		if typeof(newColor) ~= "Color3" then
+			return
+		end
 		color = newColor
 		committed = newColor
 		hub.deps.settings.Set(hub.settings, flag, newColor)
 		swatch.BackgroundColor3 = newColor
-		if fireCallback and opts.callback then
+		if fireCallback and type(opts.callback) == "function" then
 			opts.callback(newColor)
 		end
 	end

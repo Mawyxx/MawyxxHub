@@ -16,11 +16,11 @@ function ToggleColor.build(hub, element)
 	local colorFlag = element.colorFlag
 
 	local state = hub.settings[flag]
-	if state == nil then
+	if type(state) ~= "boolean" then
 		state = element.default
-		if state == nil then
-			state = false
-		end
+	end
+	if type(state) ~= "boolean" then
+		state = false
 	end
 	hub.deps.settings.Set(hub.settings, flag, state)
 

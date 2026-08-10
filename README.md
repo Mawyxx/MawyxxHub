@@ -79,7 +79,7 @@ hub:applyTheme({ purple = Color3.new(...) })
 hub:Destroy()
 ```
 
-`addToggleColor(group, label, flag, colorFlag, defaultOn, defaultColor, callback?, colorCallback?)` — toggle + color square on one row.
+`addToggleColor(group, label, flag, colorFlag, defaultOn?, defaultColor?, callback?, colorCallback?)` — toggle + color square on one row. Misplaced `Color3` / function args are normalized so they are not written into settings as the wrong type.
 
 ---
 

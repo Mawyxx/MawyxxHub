@@ -11,11 +11,11 @@ function Toggle.build(hub, element)
 	local config = hub.config
 	local flag = element.flag
 	local state = hub.settings[flag]
-	if state == nil then
+	if type(state) ~= "boolean" then
 		state = element.default
-		if state == nil then
-			state = false
-		end
+	end
+	if type(state) ~= "boolean" then
+		state = false
 	end
 	hub.deps.settings.Set(hub.settings, flag, state)
 
