@@ -58,6 +58,33 @@ local savedLighting = {
 	FogEnd = Lighting.FogEnd,
 	ClockTime = Lighting.ClockTime,
 }
+local savedCam = {
+	FieldOfView = 70,
+	FieldOfViewMode = nil,
+}
+do
+	local cam = workspace.CurrentCamera
+	if cam then
+		savedCam.FieldOfView = cam.FieldOfView
+		pcall(function()
+			savedCam.FieldOfViewMode = cam.FieldOfViewMode
+		end)
+	end
+end
+local letterTop = Instance.new("Frame")
+letterTop.Name = "LetterboxTop"
+letterTop.BackgroundColor3 = Color3.new(0, 0, 0)
+letterTop.BorderSizePixel = 0
+letterTop.Visible = false
+letterTop.ZIndex = 100
+letterTop.Parent = overlayGui
+local letterBot = Instance.new("Frame")
+letterBot.Name = "LetterboxBot"
+letterBot.BackgroundColor3 = Color3.new(0, 0, 0)
+letterBot.BorderSizePixel = 0
+letterBot.Visible = false
+letterBot.ZIndex = 100
+letterBot.Parent = overlayGui
 local baseWalkSpeed = 16
 local flyConn = nil
 local flyBV = nil
@@ -294,15 +321,80 @@ end
 
 local function applyCameraFov()
 	local cam = workspace.CurrentCamera
-	if cam then
-		cam.FieldOfView = flag("play_cam_fov", 70)
+	if not cam then
+		return
 	end
+
+	local stretch = flag("play_stretch", false)
+	local cinematic = flag("play_cinematic", false)
+	local fov = flag("play_cam_fov", 70)
+
+	-- Stretch = wide FOV via MaxAxis (no downscale / no blur — same render res)
+	if stretch then
+		cam.FieldOfView = math.clamp(fov, 70, 120)
+		pcall(function()
+			cam.FieldOfViewMode = Enum.FieldOfViewMode.MaxAxis
+		end)
+	else
+		cam.FieldOfView = fov
+		pcall(function()
+			if savedCam.FieldOfViewMode ~= nil then
+				cam.FieldOfViewMode = savedCam.FieldOfViewMode
+			else
+				cam.FieldOfViewMode = Enum.FieldOfViewMode.Vertical
+			end
+		end)
+	end
+
+	-- Movie letterbox (2.39:1 crop bars) — optional look, keeps sharpness
+	local size = cam.ViewportSize
+	if cinematic and size.Y > 0 then
+		local targetRatio = 2.39
+		local viewRatio = size.X / size.Y
+		local barH = 0
+		if viewRatio < targetRatio then
+			-- taller than ultrawide → bars top/bottom
+			local targetH = size.X / targetRatio
+			barH = math.max(0, (size.Y - targetH) / 2)
+		else
+			barH = math.max(24, size.Y * 0.08)
+		end
+		letterTop.Visible = true
+		letterBot.Visible = true
+		letterTop.Size = UDim2.fromOffset(size.X, barH)
+		letterTop.Position = UDim2.fromOffset(0, 0)
+		letterBot.Size = UDim2.fromOffset(size.X, barH)
+		letterBot.Position = UDim2.fromOffset(0, size.Y - barH)
+	else
+		letterTop.Visible = false
+		letterBot.Visible = false
+	end
+end
+
+local function restoreCamera()
+	local cam = workspace.CurrentCamera
+	if not cam then
+		return
+	end
+	cam.FieldOfView = savedCam.FieldOfView
+	pcall(function()
+		if savedCam.FieldOfViewMode ~= nil then
+			cam.FieldOfViewMode = savedCam.FieldOfViewMode
+		end
+	end)
+	letterTop.Visible = false
+	letterBot.Visible = false
 end
 
 local renderConn = RunService.RenderStepped:Connect(function()
 	Camera = workspace.CurrentCamera
 	if not Camera then
 		return
+	end
+
+	-- Keep FOV/stretch sticky (games often reset camera each frame)
+	if flag("play_stretch", false) or flag("play_cinematic", false) or flag("play_cam_fov", 70) ~= savedCam.FieldOfView then
+		applyCameraFov()
 	end
 
 	local espOn = flag("play_esp_on", false)
@@ -418,6 +510,18 @@ hub:addSlider(move, "fly speed", "play_flyspeed", 10, 200, 5, 50)
 hub:addSlider(cam, "fov", "play_cam_fov", 50, 120, 1, 70, function()
 	applyCameraFov()
 end)
+hub:addToggle(cam, "stretch fov", "play_stretch", false, function()
+	applyCameraFov()
+end)
+hub:addToggle(cam, "cinematic bars", "play_cinematic", false, function()
+	applyCameraFov()
+end)
+hub:addButton(cam, "reset camera", function()
+	hub:set("play_cam_fov", savedCam.FieldOfView)
+	hub:set("play_stretch", false)
+	hub:set("play_cinematic", false)
+	restoreCamera()
+end)
 
 local lightingG = hub:addGroup(world, "Lighting")
 hub:addToggle(lightingG, "fullbright", "play_fullbright", false, function(on)
@@ -453,6 +557,7 @@ function hub:Destroy()
 	renderConn:Disconnect()
 	stopFly()
 	applyFullbright(false)
+	restoreCamera()
 	for plr in pairs(entries) do
 		clearEntry(plr)
 	end
@@ -460,4 +565,4 @@ function hub:Destroy()
 	oldDestroy(self)
 end
 
-print("[MawyxxHub] Play demo ready — RightControl | ESP/tracers/speed/fly/fullbright")
+print("[MawyxxHub] Play demo ready — RightControl | ESP/tracers/stretch FOV/speed/fly")
