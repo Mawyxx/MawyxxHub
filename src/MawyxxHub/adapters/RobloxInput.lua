@@ -2,6 +2,7 @@
 
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
 
 local RobloxInput = {}
 
@@ -14,8 +15,13 @@ function RobloxInput.GetMouseLocationGui()
 	return UserInputService:GetMouseLocation() - GuiService:GetGuiInset()
 end
 
+function RobloxInput.SetMouseIconEnabled(enabled)
+	UserInputService.MouseIconEnabled = enabled and true or false
+end
+
 RobloxInput.InputBegan = UserInputService.InputBegan
 RobloxInput.InputChanged = UserInputService.InputChanged
 RobloxInput.InputEnded = UserInputService.InputEnded
+RobloxInput.RenderStepped = RunService.RenderStepped
 
 return RobloxInput
