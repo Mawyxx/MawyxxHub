@@ -1,9 +1,9 @@
 -- Open: thin center strip expands up+down. Close: collapses into center strip. Linear.
 
-local OPEN_INFO = TweenInfo.new(0.24, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-local CLOSE_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
-local OPEN_MS = 0.26
-local CLOSE_MS = 0.22
+local OPEN_INFO = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+local CLOSE_INFO = TweenInfo.new(0.08, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
+local OPEN_MS = 0.11
+local CLOSE_MS = 0.09
 
 local Shortcuts = {}
 

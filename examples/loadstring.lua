@@ -1,1 +1,1 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/___RUN_UI_V10.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/___RUN_UI_V11.lua"))()
