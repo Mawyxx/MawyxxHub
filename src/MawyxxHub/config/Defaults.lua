@@ -35,12 +35,12 @@ local Defaults = {
 	},
 	-- Hub window starts hidden; RightShift opens/closes (framework-level).
 	startHidden = true,
-	-- Equal WIDTH columns; clear gutter between cards (no edge-gluing).
+	-- Equal WIDTH; guaranteed air between columns (same outer pad L/R).
 	group = {
 		columns = 2,
 		gap = 14, -- vertical between groups in a column
-		gutter = 16, -- horizontal space between columns
-		padding = 16, -- page inset
+		gutter = 20, -- horizontal air between left and right cards
+		padding = 18, -- page inset (left AND right — same)
 		headerHeight = 36,
 		corner = 4,
 	},

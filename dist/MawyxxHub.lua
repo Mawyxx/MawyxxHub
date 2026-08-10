@@ -160,12 +160,12 @@ __modules["config/Defaults"] = function(__require)
 		},
 		-- Hub window starts hidden; RightShift opens/closes (framework-level).
 		startHidden = true,
-		-- Equal WIDTH columns; clear gutter between cards (no edge-gluing).
+		-- Equal WIDTH; guaranteed air between columns (same outer pad L/R).
 		group = {
 			columns = 2,
 			gap = 14, -- vertical between groups in a column
-			gutter = 16, -- horizontal space between columns
-			padding = 16, -- page inset
+			gutter = 20, -- horizontal air between left and right cards
+			padding = 18, -- page inset (left AND right — same)
 			headerHeight = 36,
 			corner = 4,
 		},
@@ -1280,7 +1280,7 @@ __modules["navigation/Groups"] = function(__require)
 end
 
 __modules["navigation/Pages"] = function(__require)
-	-- Tab page: equal-width columns with a clear gap (no edge-gluing).
+	-- Tab page: equal-width columns with a guaranteed middle gutter (no squeeze).
 	
 	local CreateMod = __require("visual/Create")
 	local Groups = __require("navigation/Groups")
@@ -1289,6 +1289,14 @@ __modules["navigation/Pages"] = function(__require)
 	local Create = CreateMod.Create
 	
 	local Pages = {}
+	
+	local function addColumnList(col, gap)
+		Create("UIListLayout", {
+			Parent = col,
+			Padding = UDim.new(0, gap),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		})
+	end
 	
 	function Pages.render(hub)
 		hub._pageMaid:DoCleaning()
@@ -1307,9 +1315,9 @@ __modules["navigation/Pages"] = function(__require)
 		local query = hub.searchQuery or ""
 		local gcfg = hub.config.group or {}
 		local gap = gcfg.gap or 14
-		local pad = gcfg.padding or 16
-		local columns = gcfg.columns or 2
-		local gutter = gcfg.gutter or 16
+		local pad = gcfg.padding or 18
+		local columns = math.max(1, gcfg.columns or 2)
+		local gutter = gcfg.gutter or 20
 	
 		for _, tab in ipairs(hub.tabs) do
 			local page = Create("Frame", {
@@ -1333,6 +1341,7 @@ __modules["navigation/Pages"] = function(__require)
 				AutomaticCanvasSize = Enum.AutomaticSize.Y,
 				ScrollingDirection = Enum.ScrollingDirection.Y,
 			})
+			-- Same outer air on left and right of the content area.
 			Create("UIPadding", {
 				Parent = scroll,
 				PaddingLeft = UDim.new(0, pad),
@@ -1349,33 +1358,69 @@ __modules["navigation/Pages"] = function(__require)
 				BorderSizePixel = 0,
 				AutomaticSize = Enum.AutomaticSize.Y,
 			})
-			Create("UIListLayout", {
-				Parent = row,
-				FillDirection = Enum.FillDirection.Horizontal,
-				Padding = UDim.new(0, gutter),
-				SortOrder = Enum.SortOrder.LayoutOrder,
-				HorizontalAlignment = Enum.HorizontalAlignment.Left,
-				VerticalAlignment = Enum.VerticalAlignment.Top,
-			})
 	
 			local cols = {}
-			local widthOffset = -math.ceil(gutter * (columns - 1) / columns)
-			for c = 1, columns do
+	
+			if columns == 1 then
 				local col = Create("Frame", {
-					Name = "Column" .. c,
+					Name = "Column1",
 					Parent = row,
-					Size = UDim2.new(1 / columns, widthOffset, 0, 0),
+					Size = UDim2.new(1, 0, 0, 0),
 					BackgroundTransparency = 1,
 					BorderSizePixel = 0,
 					AutomaticSize = Enum.AutomaticSize.Y,
-					LayoutOrder = c,
 				})
+				addColumnList(col, gap)
+				cols[1] = col
+			elseif columns == 2 then
+				-- left [====] gutter [====] right
+				-- Positions are explicit so UIListLayout cannot collapse the gutter.
+				local half = math.floor(gutter / 2)
+	
+				local left = Create("Frame", {
+					Name = "Column1",
+					Parent = row,
+					Position = UDim2.new(0, 0, 0, 0),
+					Size = UDim2.new(0.5, -half, 0, 0),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					AutomaticSize = Enum.AutomaticSize.Y,
+				})
+				addColumnList(left, gap)
+				cols[1] = left
+	
+				local right = Create("Frame", {
+					Name = "Column2",
+					Parent = row,
+					Position = UDim2.new(0.5, half, 0, 0),
+					Size = UDim2.new(0.5, -half, 0, 0),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					AutomaticSize = Enum.AutomaticSize.Y,
+				})
+				addColumnList(right, gap)
+				cols[2] = right
+			else
+				local shrink = math.ceil(gutter * (columns - 1) / columns)
 				Create("UIListLayout", {
-					Parent = col,
-					Padding = UDim.new(0, gap),
+					Parent = row,
+					FillDirection = Enum.FillDirection.Horizontal,
+					Padding = UDim.new(0, gutter),
 					SortOrder = Enum.SortOrder.LayoutOrder,
 				})
-				cols[c] = col
+				for c = 1, columns do
+					local col = Create("Frame", {
+						Name = "Column" .. c,
+						Parent = row,
+						Size = UDim2.new(1 / columns, -shrink, 0, 0),
+						BackgroundTransparency = 1,
+						BorderSizePixel = 0,
+						AutomaticSize = Enum.AutomaticSize.Y,
+						LayoutOrder = c,
+					})
+					addColumnList(col, gap)
+					cols[c] = col
+				end
 			end
 	
 			local groups = tab.groups or tab.sections or {}
