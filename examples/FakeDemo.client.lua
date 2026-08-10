@@ -1,14 +1,11 @@
 --[[
-	MawyxxHub Fake Demo — loads framework from GitHub.
+	CACHE-BUST: load by commit SHA, not /main/ (executors cache main forever).
 
-	Executor:
-	  loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua?v=4"))()
-
-	RightShift opens/closes GUI.
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/CACHEBUST_SHA/examples/FakeDemo.client.lua"))()
 ]]
 
-local BUNDLE_VER = "9"
-local RAW = ("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua?v=%s"):format(BUNDLE_VER)
+local COMMIT = "9b5abc222312fbe469a7a1137625815431710e02"
+local W, H, SIDE = 760, 580, 150
 
 local function httpGet(url)
 	local ok, result = pcall(function()
@@ -17,38 +14,37 @@ local function httpGet(url)
 	if ok and type(result) == "string" and #result > 0 then
 		return result
 	end
-	local HttpService = game:GetService("HttpService")
-	return HttpService:GetAsync(url)
+	return game:GetService("HttpService"):GetAsync(url)
 end
 
-print("[MawyxxHub] fetching bundle", BUNDLE_VER)
+local RAW = ("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/%s/dist/MawyxxHub.lua"):format(COMMIT)
+print("[MawyxxHub] FETCH commit", COMMIT, "expect window", W)
+
 local source = httpGet(RAW)
-if not string.find(source, "layoutTwoColumns", 1, true) or not string.find(source, "padding-safe", 1, true) then
-	warn("[MawyxxHub] stale/cached bundle — bump ?v= or reinject.")
-end
-
 local chunk, err = loadstring(source)
-if not chunk then
-	error("[MawyxxHub] failed to load bundle: " .. tostring(err))
-end
-
+assert(chunk, "[MawyxxHub] load failed: " .. tostring(err))
 local MawyxxHub = chunk()
-if type(MawyxxHub) ~= "table" or type(MawyxxHub.new) ~= "function" then
-	error("[MawyxxHub] bundle did not return framework table")
-end
+assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] bad export")
 
 local hub = MawyxxHub.new({
-	window = { title = "MawyxxHub Demo", width = 760, height = 580, sidebarWidth = 150 },
+	window = { title = "MawyxxHub Demo", width = W, height = H, sidebarWidth = SIDE },
 	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
 	startHidden = true,
-	group = {
-		columns = 2,
-		gap = 7,
-		gutter = 12,
-		padding = 12,
-		innerPadding = 10,
-	},
+	group = { columns = 2, gap = 7, gutter = 12, padding = 12, innerPadding = 10 },
 })
+
+-- Force size even if an old cached bundle ignored config
+hub.config.window.width = W
+hub.config.window.height = H
+hub.config.window.sidebarWidth = SIDE
+if hub.window then
+	if hub.window.Visible then
+		hub.window.Size = UDim2.new(0, W, 0, H)
+	else
+		hub.window.Size = UDim2.new(0, W, 0, 0)
+	end
+end
+print("[MawyxxHub] FORCED size", W, "x", H, "config=", hub.config.window.width)
 
 local combat = hub:addTab("Combat")
 local visuals = hub:addTab("Visuals")
@@ -118,4 +114,4 @@ hub:addButton(danger, "Destroy hub", function()
 	hub:Destroy()
 end)
 
-print("[MawyxxHub] OK bundle", BUNDLE_VER, "— RightShift. window=760")
+print("[MawyxxHub] READY — RightShift. If still wide, you are NOT on this script.")
