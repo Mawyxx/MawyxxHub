@@ -1,13 +1,11 @@
--- RightShift / close: scale open (small→big) and close (big→small).
+-- Open/close: collapse ↔ expand from the exact center of the menu.
 
-local CreateMod = require(script.Parent.Parent.visual.Create)
-local Create = CreateMod.Create
-
-local OPEN_INFO = TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local OPEN_INFO = TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local CLOSE_INFO = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-local OPEN_MS = 0.25
+local OPEN_MS = 0.26
 local CLOSE_MS = 0.2
-local MIN_SCALE = 0.04
+-- Near-zero size = one point at AnchorPoint (menu center)
+local POINT = UDim2.fromOffset(2, 2)
 
 local Shortcuts = {}
 
@@ -20,23 +18,21 @@ function Shortcuts.setup(hub)
 
 	local w = hub.config.window.width
 	local h = hub.config.window.height
+	local FULL = UDim2.fromOffset(w, h)
 
-	-- Always full logical size; visibility via UIScale (keeps layout correct while animating)
-	hub.window.Size = UDim2.new(0, w, 0, h)
+	-- Pivot = center of the GUI (collapse point)
 	hub.window.AnchorPoint = Vector2.new(0.5, 0.5)
+	hub.window.Position = UDim2.fromScale(0.5, 0.5)
 
-	local scale = hub.window:FindFirstChildOfClass("UIScale")
-	if not scale then
-		scale = Create("UIScale", {
-			Parent = hub.window,
-			Scale = 1,
-		})
+	-- Drop leftover UIScale from older builds so Size pivot is clean
+	local oldScale = hub.window:FindFirstChildOfClass("UIScale")
+	if oldScale then
+		oldScale:Destroy()
 	end
-	hub._windowScale = scale
 
 	local visible = not startHidden
 	hub.window.Visible = visible
-	scale.Scale = visible and 1 or MIN_SCALE
+	hub.window.Size = visible and FULL or POINT
 
 	local animToken = 0
 
@@ -62,45 +58,48 @@ function Shortcuts.setup(hub)
 		local token = animToken
 		visible = open
 
+		-- Keep pivot locked on menu center while animating
+		hub.window.AnchorPoint = Vector2.new(0.5, 0.5)
+		hub.window.Position = UDim2.fromScale(0.5, 0.5)
+
 		if open then
 			hub.window.Visible = true
-			hub.window.Size = UDim2.new(0, w, 0, h)
-			scale.Scale = MIN_SCALE
-			runLayouts()
-			task.defer(runLayouts)
+			hub.window.Size = POINT
 
 			if hub.config.animations == false then
-				scale.Scale = 1
+				hub.window.Size = FULL
 				runLayouts()
+				task.defer(runLayouts)
 				return
 			end
 
-			hub:tween(scale, { Scale = 1 }, OPEN_INFO)
-			task.delay(0.05, function()
+			hub:tween(hub.window, { Size = FULL }, OPEN_INFO)
+			task.delay(OPEN_MS * 0.45, function()
 				if token == animToken and not hub._destroyed then
 					runLayouts()
 				end
 			end)
 			task.delay(OPEN_MS, function()
 				if token == animToken and not hub._destroyed then
+					hub.window.Size = FULL
 					runLayouts()
 				end
 			end)
 		else
 			if hub.config.animations == false then
-				scale.Scale = MIN_SCALE
+				hub.window.Size = POINT
 				hub.window.Visible = false
 				return
 			end
 
-			hub:tween(scale, { Scale = MIN_SCALE }, CLOSE_INFO)
+			hub:tween(hub.window, { Size = POINT }, CLOSE_INFO)
 			task.delay(CLOSE_MS, function()
 				if token ~= animToken or hub._destroyed then
 					return
 				end
 				if not visible then
+					hub.window.Size = POINT
 					hub.window.Visible = false
-					scale.Scale = MIN_SCALE
 				end
 			end)
 		end
