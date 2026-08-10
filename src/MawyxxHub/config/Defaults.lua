@@ -2,8 +2,8 @@
 
 local Defaults = {
 	window = {
-		width = 920,
-		height = 570,
+		width = 1100,
+		height = 620,
 		title = "MawyxxHub",
 	},
 	colors = {

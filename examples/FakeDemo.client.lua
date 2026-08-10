@@ -7,7 +7,7 @@
 	RightShift opens/closes GUI.
 ]]
 
-local BUNDLE_VER = "4"
+local BUNDLE_VER = "5"
 local RAW = ("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua?v=%s"):format(BUNDLE_VER)
 
 local function httpGet(url)
@@ -38,7 +38,7 @@ if type(MawyxxHub) ~= "table" or type(MawyxxHub.new) ~= "function" then
 end
 
 local hub = MawyxxHub.new({
-	window = { title = "MawyxxHub Demo" },
+	window = { title = "MawyxxHub Demo", width = 1100, height = 620 },
 	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
 	startHidden = true,
 	group = {
@@ -117,4 +117,4 @@ hub:addButton(danger, "Destroy hub", function()
 	hub:Destroy()
 end)
 
-print("[MawyxxHub] OK bundle", BUNDLE_VER, "— RightShift to open. gutter=24")
+print("[MawyxxHub] OK bundle", BUNDLE_VER, "— RightShift to open. window=1100 gutter=24")
