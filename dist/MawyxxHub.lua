@@ -315,7 +315,7 @@ end
 
 __modules["controls/ColorPicker"] = function(__require)
 	-- Color picker: click swatch → HSV square + hue strip → OK / Cancel.
-	-- MAWYXX_COLOR_HSV_V5
+	-- mountSwatch() is shared by colorpicker + togglecolor rows.
 	
 	local CreateMod = __require("visual/Create")
 	
@@ -337,48 +337,22 @@ __modules["controls/ColorPicker"] = function(__require)
 	
 	local ColorPicker = {}
 	
-	function ColorPicker.build(hub, element)
+	--- Wire an existing swatch button to the HSV panel + settings flag.
+	-- opts: { flag, default, callback }
+	function ColorPicker.mountSwatch(hub, swatch, opts)
 		local config = hub.config
 		local input = hub.deps.input
-		local flag = element.flag
+		local flag = opts.flag
 		local color = hub.settings[flag]
 		if color == nil then
-			color = element.default or Color3.fromRGB(117, 72, 255)
+			color = opts.default or Color3.fromRGB(117, 72, 255)
 		end
 		hub.deps.settings.Set(hub.settings, flag, color)
-	
-		local row = Create("Frame", {
-			Size = UDim2.new(1, 0, 0, 30),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-		})
-		Create("UIPadding", {
-			Parent = row,
-			PaddingRight = UDim.new(0, 4),
-		})
-	
-		local label = CreateMod.TextLabel(row, element.label, 14, config.colors.text, config.font)
-		label.Size = UDim2.new(0.65, 0, 1, 0)
-		label.TextXAlignment = Enum.TextXAlignment.Left
-	
-		local swatch = Create("TextButton", {
-			Parent = row,
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, 0, 0.5, 0),
-			Size = UDim2.new(0, 16, 0, 16),
-			BackgroundColor3 = color,
-			BorderSizePixel = 0,
-			Text = "",
-			AutoButtonColor = false,
-			ZIndex = 5,
-		})
-		Stroke(swatch, config.colors.borderSoft, 1, 0.4)
-		Corner(swatch, 2)
+		swatch.BackgroundColor3 = color
 	
 		local panelW = PANEL_PAD + SV + GAP + HUE_W + PANEL_PAD
 		local panelH = PANEL_PAD + 18 + GAP + SV + GAP + PREVIEW_H + GAP + BTN_H + PANEL_PAD
 	
-		-- Own ScreenGui so nothing can clip/hide the picker (executor-proof)
 		local overlayGui = Create("ScreenGui", {
 			Name = "MawyxxColorOverlay",
 			Parent = hub.deps.guiHost.GetPlayerGui(),
@@ -590,8 +564,8 @@ __modules["controls/ColorPicker"] = function(__require)
 			committed = newColor
 			hub.deps.settings.Set(hub.settings, flag, newColor)
 			swatch.BackgroundColor3 = newColor
-			if fireCallback and element.callback then
-				element.callback(newColor)
+			if fireCallback and opts.callback then
+				opts.callback(newColor)
 			end
 		end
 	
@@ -603,7 +577,6 @@ __modules["controls/ColorPicker"] = function(__require)
 		end
 	
 		local function mouseXY()
-			-- AbsolutePosition is Gui-inset space; raw GetMouseLocation is not
 			local getter = input.GetMouseLocationGui or input.GetMouseLocation
 			local m = getter()
 			return m.X, m.Y
@@ -737,6 +710,45 @@ __modules["controls/ColorPicker"] = function(__require)
 		end)
 	
 		syncFromHSV()
+	end
+	
+	function ColorPicker.build(hub, element)
+		local config = hub.config
+	
+		local row = Create("Frame", {
+			Size = UDim2.new(1, 0, 0, 30),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+		})
+		Create("UIPadding", {
+			Parent = row,
+			PaddingRight = UDim.new(0, 4),
+		})
+	
+		local label = CreateMod.TextLabel(row, element.label, 14, config.colors.text, config.font)
+		label.Size = UDim2.new(0.65, 0, 1, 0)
+		label.TextXAlignment = Enum.TextXAlignment.Left
+	
+		local swatch = Create("TextButton", {
+			Parent = row,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 0, 0.5, 0),
+			Size = UDim2.new(0, 16, 0, 16),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BorderSizePixel = 0,
+			Text = "",
+			AutoButtonColor = false,
+			ZIndex = 5,
+		})
+		Stroke(swatch, config.colors.borderSoft, 1, 0.4)
+		Corner(swatch, 2)
+	
+		ColorPicker.mountSwatch(hub, swatch, {
+			flag = element.flag,
+			default = element.default,
+			callback = element.callback,
+		})
+	
 		return row
 	end
 	
@@ -939,6 +951,7 @@ end
 __modules["controls/Factory"] = function(__require)
 	local Errors = __require("util/Errors")
 	local Toggle = __require("controls/Toggle")
+	local ToggleColor = __require("controls/ToggleColor")
 	local Slider = __require("controls/Slider")
 	local Dropdown = __require("controls/Dropdown")
 	local Button = __require("controls/Button")
@@ -946,6 +959,7 @@ __modules["controls/Factory"] = function(__require)
 	
 	local builders = {
 		toggle = Toggle.build,
+		togglecolor = ToggleColor.build,
 		slider = Slider.build,
 		dropdown = Dropdown.build,
 		button = Button.build,
@@ -1169,6 +1183,124 @@ __modules["controls/Toggle"] = function(__require)
 	end
 	
 	return Toggle
+end
+
+__modules["controls/ToggleColor"] = function(__require)
+	-- Toggle + color swatch on one row (QuantHub-style: name [■] [toggle]).
+	
+	local CreateMod = __require("visual/Create")
+	local ColorPicker = __require("controls/ColorPicker")
+	
+	local Create = CreateMod.Create
+	local Corner = CreateMod.Corner
+	local Stroke = CreateMod.Stroke
+	local TextLabel = CreateMod.TextLabel
+	
+	local ToggleColor = {}
+	
+	function ToggleColor.build(hub, element)
+		local config = hub.config
+		local flag = element.flag
+		local colorFlag = element.colorFlag
+	
+		local state = hub.settings[flag]
+		if state == nil then
+			state = element.default
+			if state == nil then
+				state = false
+			end
+		end
+		hub.deps.settings.Set(hub.settings, flag, state)
+	
+		local row = Create("Frame", {
+			Size = UDim2.new(1, 0, 0, 30),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+		})
+		Create("UIPadding", {
+			Parent = row,
+			PaddingRight = UDim.new(0, 4),
+		})
+	
+		local label = TextLabel(row, element.label, 14, config.colors.text, config.font)
+		label.Size = UDim2.new(1, -90, 1, 0)
+		label.TextXAlignment = Enum.TextXAlignment.Left
+	
+		local offColor = config.colors.control or config.colors.surface2
+		local toggleBtn = Create("TextButton", {
+			Parent = row,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 0, 0.5, 0),
+			Size = UDim2.new(0, 50, 0, 22),
+			BackgroundColor3 = state and config.colors.purple or offColor,
+			BorderSizePixel = 0,
+			Text = "",
+			AutoButtonColor = false,
+			ZIndex = 4,
+		})
+		Corner(toggleBtn, 11)
+		Stroke(toggleBtn, config.colors.borderSoft, 1, 0.55)
+	
+		local knob = Create("Frame", {
+			Parent = toggleBtn,
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
+			Size = UDim2.new(0, 16, 0, 16),
+			BackgroundColor3 = config.colors.white,
+			BorderSizePixel = 0,
+		})
+		Corner(knob, 20)
+	
+		-- Color square just left of the toggle
+		local swatch = Create("TextButton", {
+			Parent = row,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -58, 0.5, 0),
+			Size = UDim2.new(0, 16, 0, 16),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BorderSizePixel = 0,
+			Text = "",
+			AutoButtonColor = false,
+			ZIndex = 5,
+		})
+		Stroke(swatch, config.colors.borderSoft, 1, 0.4)
+		Corner(swatch, 2)
+	
+		ColorPicker.mountSwatch(hub, swatch, {
+			flag = colorFlag,
+			default = element.colorDefault or Color3.new(1, 1, 1),
+			callback = element.colorCallback,
+		})
+	
+		local function apply(newState)
+			state = newState and true or false
+			hub.deps.settings.Set(hub.settings, flag, state)
+			hub:tween(toggleBtn, {
+				BackgroundColor3 = state and config.colors.purple or offColor,
+			})
+			hub:tween(knob, {
+				Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
+			})
+		end
+	
+		hub._bindings[flag] = {
+			apply = apply,
+			read = function()
+				return state
+			end,
+		}
+	
+		hub._pageMaid:Connect(toggleBtn.MouseButton1Click, function()
+			apply(not state)
+			if element.callback then
+				element.callback(state)
+			end
+		end)
+	
+		return row
+	end
+	
+	return ToggleColor
 end
 
 __modules["fakes/FakeInput"] = function(__require)
@@ -1511,6 +1643,23 @@ __modules["hub/MawyxxHub"] = function(__require)
 		})
 	end
 	
+	--- Toggle + color swatch on one row. Two flags: bool + Color3.
+	function MawyxxHub:addToggleColor(group, label, flag, colorFlag, defaultOn, defaultColor, callback, colorCallback)
+		Validate.label(label)
+		Validate.flagsDistinct(flag, colorFlag)
+		Validate.flagUnique(self, colorFlag)
+		return appendControl(self, group, {
+			type = "togglecolor",
+			label = label,
+			flag = flag,
+			colorFlag = colorFlag,
+			default = defaultOn == nil and false or defaultOn,
+			colorDefault = defaultColor or Color3.new(1, 1, 1),
+			callback = callback,
+			colorCallback = colorCallback,
+		})
+	end
+	
 	function MawyxxHub:get(flag)
 		Validate.alive(self)
 		Validate.flag(flag)
@@ -1529,16 +1678,21 @@ __modules["hub/MawyxxHub"] = function(__require)
 		scheduleRefresh(self, false)
 	end
 	
-	--- Remove a stateful control by flag. Returns true if removed.
+	--- Remove a stateful control by flag (or colorFlag). Returns true if removed.
 	function MawyxxHub:removeControl(flag)
 		Validate.alive(self)
 		Validate.flag(flag)
 		for _, tab in ipairs(self.tabs) do
 			for _, group in ipairs(tab.groups or {}) do
 				for i, el in ipairs(group.elements) do
-					if el.flag == flag then
+					if el.flag == flag or el.colorFlag == flag then
 						table.remove(group.elements, i)
-						self._bindings[flag] = nil
+						if el.flag then
+							self._bindings[el.flag] = nil
+						end
+						if el.colorFlag then
+							self._bindings[el.colorFlag] = nil
+						end
 						scheduleRefresh(self, false)
 						return true
 					end
@@ -1723,7 +1877,7 @@ __modules["model/Filter"] = function(__require)
 		end
 		local filtered = {}
 		for _, el in ipairs(group.elements) do
-			if Filter.matchesQuery(query, el.label, el.flag, el.type) then
+			if Filter.matchesQuery(query, el.label, el.flag, el.colorFlag, el.type) then
 				table.insert(filtered, el)
 			end
 		end
@@ -1799,7 +1953,7 @@ __modules["model/Validate"] = function(__require)
 			for _, group in ipairs(tab.groups or tab.sections or {}) do
 				for _, el in ipairs(group.elements or {}) do
 					Errors.expect(
-						el.flag ~= flag,
+						el.flag ~= flag and el.colorFlag ~= flag,
 						"Validate.FlagUnique",
 						("duplicate flag %q — labels may repeat, flags must be unique"):format(flag)
 					)
@@ -1808,8 +1962,10 @@ __modules["model/Validate"] = function(__require)
 		end
 	end
 	
-	function Validate.label(label)
-		Errors.expect(type(label) == "string" and label ~= "", "Validate.Label", "label must be a non-empty string")
+	function Validate.flagsDistinct(flag, colorFlag)
+		Validate.flag(flag)
+		Validate.flag(colorFlag)
+		Errors.expect(flag ~= colorFlag, "Validate.Flag", "flag and colorFlag must differ")
 	end
 	
 	function Validate.expectTable(value, ruleId, message)

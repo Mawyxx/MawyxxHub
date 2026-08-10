@@ -29,7 +29,7 @@ function Validate.flagUnique(hub, flag)
 		for _, group in ipairs(tab.groups or tab.sections or {}) do
 			for _, el in ipairs(group.elements or {}) do
 				Errors.expect(
-					el.flag ~= flag,
+					el.flag ~= flag and el.colorFlag ~= flag,
 					"Validate.FlagUnique",
 					("duplicate flag %q — labels may repeat, flags must be unique"):format(flag)
 				)
@@ -38,8 +38,10 @@ function Validate.flagUnique(hub, flag)
 	end
 end
 
-function Validate.label(label)
-	Errors.expect(type(label) == "string" and label ~= "", "Validate.Label", "label must be a non-empty string")
+function Validate.flagsDistinct(flag, colorFlag)
+	Validate.flag(flag)
+	Validate.flag(colorFlag)
+	Errors.expect(flag ~= colorFlag, "Validate.Flag", "flag and colorFlag must differ")
 end
 
 function Validate.expectTable(value, ruleId, message)

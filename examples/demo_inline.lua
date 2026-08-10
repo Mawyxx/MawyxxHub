@@ -49,10 +49,9 @@ hub:addSlider(rage, "Hit chance", "demo_hitchance", 0, 100, 5, 80)
 local esp = hub:addGroup(visuals, "ESP")
 local world = hub:addGroup(visuals, "World")
 
-hub:addToggle(esp, "Boxes", "demo_esp_box", true)
-hub:addToggle(esp, "Names", "demo_esp_names", true)
-hub:addToggle(esp, "Tracers", "demo_esp_tracers", false)
-hub:addColorPicker(esp, "Box color", "demo_esp_color", Color3.fromRGB(80, 200, 120))
+hub:addToggleColor(esp, "Boxes", "demo_esp_box", "demo_esp_box_color", true, Color3.fromRGB(80, 200, 120))
+hub:addToggleColor(esp, "Names", "demo_esp_names", "demo_esp_names_color", true, Color3.new(1, 1, 1))
+hub:addToggleColor(esp, "Tracers", "demo_esp_tracers", "demo_esp_tracers_color", false, Color3.fromRGB(118, 100, 200))
 hub:addDropdown(esp, "Box style", "demo_esp_style", { "Full", "Corner", "3D" }, "Corner")
 
 hub:addToggle(world, "Fullbright", "demo_fullbright", false)

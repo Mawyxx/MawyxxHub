@@ -72,12 +72,14 @@ Labels may repeat; flags must not. Buttons have no flag.
 
 ```lua
 hub:beginUpdate() / hub:endUpdate()   -- batch UI builds
-hub:addTab / addGroup / addToggle / addSlider / addDropdown / addButton / addColorPicker
+hub:addTab / addGroup / addToggle / addToggleColor / addSlider / addDropdown / addButton / addColorPicker
 hub:get(flag) / hub:set(flag, value)
 hub:removeControl(flag) / removeGroup / removeTab
 hub:applyTheme({ purple = Color3.new(...) })
 hub:Destroy()
 ```
+
+`addToggleColor(group, label, flag, colorFlag, defaultOn, defaultColor, callback?, colorCallback?)` — toggle + color square on one row.
 
 ---
 
@@ -104,7 +106,8 @@ python scripts/bundle.py
 Writes only:
 
 - `dist/MawyxxHub.lua` — **main framework**
-- `dist/demo.lua` — optional demo
+- `dist/demo.lua` — UI demo
+- `dist/demo_play.lua` — functional ESP/play demo
 
 ---
 

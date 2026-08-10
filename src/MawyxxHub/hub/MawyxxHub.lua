@@ -251,6 +251,23 @@ function MawyxxHub:addColorPicker(group, label, flag, default, callback)
 	})
 end
 
+--- Toggle + color swatch on one row. Two flags: bool + Color3.
+function MawyxxHub:addToggleColor(group, label, flag, colorFlag, defaultOn, defaultColor, callback, colorCallback)
+	Validate.label(label)
+	Validate.flagsDistinct(flag, colorFlag)
+	Validate.flagUnique(self, colorFlag)
+	return appendControl(self, group, {
+		type = "togglecolor",
+		label = label,
+		flag = flag,
+		colorFlag = colorFlag,
+		default = defaultOn == nil and false or defaultOn,
+		colorDefault = defaultColor or Color3.new(1, 1, 1),
+		callback = callback,
+		colorCallback = colorCallback,
+	})
+end
+
 function MawyxxHub:get(flag)
 	Validate.alive(self)
 	Validate.flag(flag)
@@ -269,16 +286,21 @@ function MawyxxHub:set(flag, value)
 	scheduleRefresh(self, false)
 end
 
---- Remove a stateful control by flag. Returns true if removed.
+--- Remove a stateful control by flag (or colorFlag). Returns true if removed.
 function MawyxxHub:removeControl(flag)
 	Validate.alive(self)
 	Validate.flag(flag)
 	for _, tab in ipairs(self.tabs) do
 		for _, group in ipairs(tab.groups or {}) do
 			for i, el in ipairs(group.elements) do
-				if el.flag == flag then
+				if el.flag == flag or el.colorFlag == flag then
 					table.remove(group.elements, i)
-					self._bindings[flag] = nil
+					if el.flag then
+						self._bindings[el.flag] = nil
+					end
+					if el.colorFlag then
+						self._bindings[el.colorFlag] = nil
+					end
 					scheduleRefresh(self, false)
 					return true
 				end

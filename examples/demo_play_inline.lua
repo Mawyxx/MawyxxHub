@@ -442,7 +442,10 @@ local renderConn = RunService.RenderStepped:Connect(function()
 	local tracers = flag("play_esp_tracers", false)
 	local teamCheck = flag("play_team_check", true)
 	local maxDist = flag("play_maxdistance", 2500)
-	local color = flag("play_esp_color", Color3.fromRGB(118, 100, 200))
+	local chamsColor = flag("play_esp_chams_color", Color3.fromRGB(80, 200, 120))
+	local nameColor = flag("play_esp_names_color", Color3.new(1, 1, 1))
+	local distColor = flag("play_esp_dist_color", Color3.fromRGB(200, 200, 200))
+	local tracerColor = flag("play_esp_tracers_color", Color3.fromRGB(118, 100, 200))
 	local origin = Camera.ViewportSize
 	local myRoot = characterRoot(LocalPlayer)
 	local myPos = myRoot and myRoot.Position
@@ -460,15 +463,18 @@ local renderConn = RunService.RenderStepped:Connect(function()
 			else
 				local e = ensureEntry(plr)
 				e.highlight.Adornee = plr.Character
-				e.highlight.OutlineColor = color
+				e.highlight.OutlineColor = chamsColor
+				e.highlight.FillColor = chamsColor
+				e.highlight.FillTransparency = boxes and 0.85 or 1
 				e.highlight.Enabled = boxes
 
 				e.billboard.Adornee = root
 				e.billboard.Enabled = names or dists
 				e.nameLabel.Visible = names
 				e.nameLabel.Text = plr.DisplayName ~= "" and plr.DisplayName or plr.Name
-				e.nameLabel.TextColor3 = color
+				e.nameLabel.TextColor3 = nameColor
 				e.distLabel.Visible = dists
+				e.distLabel.TextColor3 = distColor
 				if dists and myPos then
 					e.distLabel.Text = string.format("%d studs", math.floor((root.Position - myPos).Magnitude + 0.5))
 				else
@@ -476,12 +482,11 @@ local renderConn = RunService.RenderStepped:Connect(function()
 				end
 
 				if tracers then
-					-- FP-friendly default: center; optional bottom origin
 					local from = flag("play_tracer_bottom", false)
 							and Vector2.new(origin.X / 2, origin.Y - 2)
 						or Vector2.new(origin.X / 2, origin.Y / 2)
 					local to = worldToTracerEnd(Camera, root.Position, from, origin)
-					updateTracer(e.tracer, from, to, color)
+					updateTracer(e.tracer, from, to, tracerColor)
 				else
 					e.tracer.Visible = false
 				end
@@ -521,13 +526,12 @@ local tracersG = hub:addGroup(visuals, "Tracers")
 
 hub:addToggle(esp, "enabled", "play_esp_on", true)
 hub:addToggle(esp, "team check", "play_team_check", true)
-hub:addToggle(esp, "boxes", "play_esp_box", true)
-hub:addToggle(esp, "names", "play_esp_names", true)
-hub:addToggle(esp, "distance", "play_esp_dist", true)
-hub:addColorPicker(esp, "color", "play_esp_color", Color3.fromRGB(118, 100, 200))
+hub:addToggleColor(esp, "name", "play_esp_names", "play_esp_names_color", true, Color3.new(1, 1, 1))
+hub:addToggleColor(esp, "distance", "play_esp_dist", "play_esp_dist_color", true, Color3.fromRGB(200, 200, 200))
+hub:addToggleColor(esp, "chams", "play_esp_box", "play_esp_chams_color", true, Color3.fromRGB(80, 200, 120))
 hub:addSlider(esp, "maxdistance", "play_maxdistance", 100, 5000, 50, 2500)
 
-hub:addToggle(tracersG, "tracers", "play_esp_tracers", true)
+hub:addToggleColor(tracersG, "tracers", "play_esp_tracers", "play_esp_tracers_color", true, Color3.fromRGB(118, 100, 200))
 hub:addToggle(tracersG, "from bottom", "play_tracer_bottom", false)
 
 local move = hub:addGroup(playerTab, "Movement")

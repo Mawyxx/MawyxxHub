@@ -1,5 +1,6 @@
 local Errors = require(script.Parent.Parent.util.Errors)
 local Toggle = require(script.Parent.Toggle)
+local ToggleColor = require(script.Parent.ToggleColor)
 local Slider = require(script.Parent.Slider)
 local Dropdown = require(script.Parent.Dropdown)
 local Button = require(script.Parent.Button)
@@ -7,6 +8,7 @@ local ColorPicker = require(script.Parent.ColorPicker)
 
 local builders = {
 	toggle = Toggle.build,
+	togglecolor = ToggleColor.build,
 	slider = Slider.build,
 	dropdown = Dropdown.build,
 	button = Button.build,

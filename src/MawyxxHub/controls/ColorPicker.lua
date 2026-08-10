@@ -1,5 +1,5 @@
 -- Color picker: click swatch → HSV square + hue strip → OK / Cancel.
--- MAWYXX_COLOR_HSV_V5
+-- mountSwatch() is shared by colorpicker + togglecolor rows.
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 
@@ -21,48 +21,22 @@ end
 
 local ColorPicker = {}
 
-function ColorPicker.build(hub, element)
+--- Wire an existing swatch button to the HSV panel + settings flag.
+-- opts: { flag, default, callback }
+function ColorPicker.mountSwatch(hub, swatch, opts)
 	local config = hub.config
 	local input = hub.deps.input
-	local flag = element.flag
+	local flag = opts.flag
 	local color = hub.settings[flag]
 	if color == nil then
-		color = element.default or Color3.fromRGB(117, 72, 255)
+		color = opts.default or Color3.fromRGB(117, 72, 255)
 	end
 	hub.deps.settings.Set(hub.settings, flag, color)
-
-	local row = Create("Frame", {
-		Size = UDim2.new(1, 0, 0, 30),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-	})
-	Create("UIPadding", {
-		Parent = row,
-		PaddingRight = UDim.new(0, 4),
-	})
-
-	local label = CreateMod.TextLabel(row, element.label, 14, config.colors.text, config.font)
-	label.Size = UDim2.new(0.65, 0, 1, 0)
-	label.TextXAlignment = Enum.TextXAlignment.Left
-
-	local swatch = Create("TextButton", {
-		Parent = row,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, 0, 0.5, 0),
-		Size = UDim2.new(0, 16, 0, 16),
-		BackgroundColor3 = color,
-		BorderSizePixel = 0,
-		Text = "",
-		AutoButtonColor = false,
-		ZIndex = 5,
-	})
-	Stroke(swatch, config.colors.borderSoft, 1, 0.4)
-	Corner(swatch, 2)
+	swatch.BackgroundColor3 = color
 
 	local panelW = PANEL_PAD + SV + GAP + HUE_W + PANEL_PAD
 	local panelH = PANEL_PAD + 18 + GAP + SV + GAP + PREVIEW_H + GAP + BTN_H + PANEL_PAD
 
-	-- Own ScreenGui so nothing can clip/hide the picker (executor-proof)
 	local overlayGui = Create("ScreenGui", {
 		Name = "MawyxxColorOverlay",
 		Parent = hub.deps.guiHost.GetPlayerGui(),
@@ -274,8 +248,8 @@ function ColorPicker.build(hub, element)
 		committed = newColor
 		hub.deps.settings.Set(hub.settings, flag, newColor)
 		swatch.BackgroundColor3 = newColor
-		if fireCallback and element.callback then
-			element.callback(newColor)
+		if fireCallback and opts.callback then
+			opts.callback(newColor)
 		end
 	end
 
@@ -287,7 +261,6 @@ function ColorPicker.build(hub, element)
 	end
 
 	local function mouseXY()
-		-- AbsolutePosition is Gui-inset space; raw GetMouseLocation is not
 		local getter = input.GetMouseLocationGui or input.GetMouseLocation
 		local m = getter()
 		return m.X, m.Y
@@ -421,6 +394,45 @@ function ColorPicker.build(hub, element)
 	end)
 
 	syncFromHSV()
+end
+
+function ColorPicker.build(hub, element)
+	local config = hub.config
+
+	local row = Create("Frame", {
+		Size = UDim2.new(1, 0, 0, 30),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+	})
+	Create("UIPadding", {
+		Parent = row,
+		PaddingRight = UDim.new(0, 4),
+	})
+
+	local label = CreateMod.TextLabel(row, element.label, 14, config.colors.text, config.font)
+	label.Size = UDim2.new(0.65, 0, 1, 0)
+	label.TextXAlignment = Enum.TextXAlignment.Left
+
+	local swatch = Create("TextButton", {
+		Parent = row,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, 0, 0.5, 0),
+		Size = UDim2.new(0, 16, 0, 16),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Text = "",
+		AutoButtonColor = false,
+		ZIndex = 5,
+	})
+	Stroke(swatch, config.colors.borderSoft, 1, 0.4)
+	Corner(swatch, 2)
+
+	ColorPicker.mountSwatch(hub, swatch, {
+		flag = element.flag,
+		default = element.default,
+		callback = element.callback,
+	})
+
 	return row
 end
 

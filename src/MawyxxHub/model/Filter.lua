@@ -87,7 +87,7 @@ function Filter.groupVisible(group, query)
 	end
 	local filtered = {}
 	for _, el in ipairs(group.elements) do
-		if Filter.matchesQuery(query, el.label, el.flag, el.type) then
+		if Filter.matchesQuery(query, el.label, el.flag, el.colorFlag, el.type) then
 			table.insert(filtered, el)
 		end
 	end
