@@ -2088,7 +2088,7 @@ __modules["navigation/Groups"] = function(__require)
 end
 
 __modules["navigation/Pages"] = function(__require)
-	-- Tab page: column widths from scroll viewport (UIPadding does not shrink AbsoluteSize).
+	-- Tab page: N-column group layout (horizontal columns, vertical cards per column).
 	
 	local CreateMod = __require("visual/Create")
 	local Groups = __require("navigation/Groups")
@@ -2103,6 +2103,7 @@ __modules["navigation/Pages"] = function(__require)
 			Parent = col,
 			Padding = UDim.new(0, gap),
 			SortOrder = Enum.SortOrder.LayoutOrder,
+			FillDirection = Enum.FillDirection.Vertical,
 		})
 	end
 	
@@ -2113,23 +2114,23 @@ __modules["navigation/Pages"] = function(__require)
 		return math.max(padL, 8), math.max(padR, 0), math.max(scrollBar, 0)
 	end
 	
-	--- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
-	local function layoutTwoColumns(scroll, row, left, right, gutter, padL, padR, scrollBar)
+	local function relayoutRow(scroll, row, cols, columns, gutter, padL, padR, scrollBar)
 		local viewW = scroll.AbsoluteSize.X
 		if viewW <= 1 then
 			return false
 		end
-		local g = math.max(gutter, 8)
 		local usable = math.max(viewW - padL - padR - scrollBar, 80)
-		local colW = math.max(math.floor((usable - g) / 2), 40)
+		local g = math.max(gutter, 8)
+		local gaps = g * math.max(columns - 1, 0)
+		local colW = math.max(math.floor((usable - gaps) / columns), 40)
 	
 		row.Size = UDim2.new(0, usable, 0, 0)
 		row.Position = UDim2.new(0, padL, 0, padL)
 	
-		left.Size = UDim2.new(0, colW, 0, 0)
-		left.Position = UDim2.new(0, 0, 0, 0)
-		right.Size = UDim2.new(0, colW, 0, 0)
-		right.Position = UDim2.new(0, colW + g, 0, 0)
+		for i, col in ipairs(cols) do
+			col.Size = UDim2.new(0, colW, 0, 0)
+			col.LayoutOrder = i
+		end
 		return true
 	end
 	
@@ -2157,7 +2158,7 @@ __modules["navigation/Pages"] = function(__require)
 		local gap = gcfg.gap or 7
 		local pad = gcfg.padding or 14
 		local padL, padR, scrollBar = layoutPads(gcfg, pad)
-		local columns = math.max(1, gcfg.columns or 2)
+		local columns = math.max(1, math.floor(gcfg.columns or 2))
 		local gutter = gcfg.gutter or 12
 	
 		for _, tab in ipairs(hub.tabs) do
@@ -2192,101 +2193,46 @@ __modules["navigation/Pages"] = function(__require)
 				AutomaticSize = Enum.AutomaticSize.Y,
 			})
 	
-			local cols = {}
+			-- Always horizontal strip of columns (fixes cards stacking under each other)
+			Create("UIListLayout", {
+				Parent = row,
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				VerticalAlignment = Enum.VerticalAlignment.Top,
+				Padding = UDim.new(0, gutter),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+			})
 	
-			if columns == 1 then
+			local cols = {}
+			for c = 1, columns do
 				local col = Create("Frame", {
-					Name = "Column1",
+					Name = "Column" .. c,
 					Parent = row,
-					Size = UDim2.new(1, 0, 0, 0),
+					Size = UDim2.new(0, 200, 0, 0),
 					BackgroundTransparency = 1,
 					BorderSizePixel = 0,
 					AutomaticSize = Enum.AutomaticSize.Y,
+					LayoutOrder = c,
 				})
 				addColumnList(col, gap)
-				cols[1] = col
-	
-				local function relayout1()
-					if hub._suspendLayout then
-						return
-					end
-					local viewW = scroll.AbsoluteSize.X
-					if viewW <= 0 then
-						return
-					end
-					local usable = math.max(viewW - padL - padR - scrollBar, 80)
-					row.Size = UDim2.new(0, usable, 0, 0)
-					row.Position = UDim2.new(0, padL, 0, padL)
-					col.Size = UDim2.new(1, 0, 0, 0)
-				end
-				hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout1)
-				task.defer(relayout1)
-			elseif columns == 2 then
-				local left = Create("Frame", {
-					Name = "Column1",
-					Parent = row,
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					AutomaticSize = Enum.AutomaticSize.Y,
-				})
-				addColumnList(left, gap)
-				cols[1] = left
-	
-				local right = Create("Frame", {
-					Name = "Column2",
-					Parent = row,
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					AutomaticSize = Enum.AutomaticSize.Y,
-				})
-				addColumnList(right, gap)
-				cols[2] = right
-	
-				local function relayout()
-					if hub._suspendLayout then
-						return
-					end
-					layoutTwoColumns(scroll, row, left, right, gutter, padL, padR, scrollBar)
-				end
-				hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout)
-				hub._pageMaid:Connect(page:GetPropertyChangedSignal("AbsoluteSize"), relayout)
-				if hub.window then
-					hub._pageMaid:Connect(hub.window:GetPropertyChangedSignal("AbsoluteSize"), relayout)
-				end
-				table.insert(hub._layoutHooks, relayout)
-				task.defer(relayout)
-				task.delay(0.05, relayout)
-				task.delay(0.2, relayout)
-			else
-				Create("UIPadding", {
-					Parent = scroll,
-					PaddingLeft = UDim.new(0, padL),
-					PaddingRight = UDim.new(0, padR),
-					PaddingTop = UDim.new(0, padL),
-					PaddingBottom = UDim.new(0, padL),
-				})
-				local shrink = math.ceil(gutter * (columns - 1) / columns)
-				row.Size = UDim2.new(1, 0, 0, 0)
-				Create("UIListLayout", {
-					Parent = row,
-					FillDirection = Enum.FillDirection.Horizontal,
-					Padding = UDim.new(0, gutter),
-					SortOrder = Enum.SortOrder.LayoutOrder,
-				})
-				for c = 1, columns do
-					local col = Create("Frame", {
-						Name = "Column" .. c,
-						Parent = row,
-						Size = UDim2.new(1 / columns, -shrink, 0, 0),
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						AutomaticSize = Enum.AutomaticSize.Y,
-						LayoutOrder = c,
-					})
-					addColumnList(col, gap)
-					cols[c] = col
-				end
+				cols[c] = col
 			end
+	
+			local function relayout()
+				if hub._suspendLayout then
+					return
+				end
+				relayoutRow(scroll, row, cols, columns, gutter, padL, padR, scrollBar)
+			end
+			hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+			hub._pageMaid:Connect(page:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+			if hub.window then
+				hub._pageMaid:Connect(hub.window:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+			end
+			table.insert(hub._layoutHooks, relayout)
+			task.defer(relayout)
+			task.delay(0.05, relayout)
+			task.delay(0.2, relayout)
 	
 			local groups = tab.groups or tab.sections or {}
 			local visibleIndex = 0
