@@ -141,13 +141,13 @@ __modules["config/Defaults"] = function(__require)
 		colors = {
 			bg = Color3.fromRGB(10, 10, 10),
 			surface = Color3.fromRGB(18, 18, 18),
-			surface2 = Color3.fromRGB(28, 28, 30),
-			surfaceHover = Color3.fromRGB(40, 40, 44),
-			-- Shared interactive field color (dropdown / button / search / off-toggle / slider track)
-			control = Color3.fromRGB(58, 58, 66),
-			controlHover = Color3.fromRGB(72, 72, 82),
-			border = Color3.fromRGB(55, 55, 62),
-			borderSoft = Color3.fromRGB(44, 44, 50),
+			surface2 = Color3.fromRGB(26, 26, 28),
+			surfaceHover = Color3.fromRGB(34, 34, 38),
+			-- Subtle lift over cards (not bright)
+			control = Color3.fromRGB(38, 38, 42),
+			controlHover = Color3.fromRGB(48, 48, 54),
+			border = Color3.fromRGB(48, 48, 54),
+			borderSoft = Color3.fromRGB(36, 36, 40),
 			text = Color3.fromRGB(235, 235, 240),
 			textSoft = Color3.fromRGB(175, 175, 182),
 			textMuted = Color3.fromRGB(110, 110, 118),
