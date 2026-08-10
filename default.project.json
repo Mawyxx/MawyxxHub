@@ -1,0 +1,21 @@
+{
+  "name": "MawyxxHub",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "MawyxxHub": {
+        "$path": "src/MawyxxHub"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "MawyxxHubFakeDemo": {
+          "$path": "examples/FakeDemo.client.lua"
+        }
+      }
+    }
+  }
+}

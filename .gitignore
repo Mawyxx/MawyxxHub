@@ -1,0 +1,12 @@
+.DS_Store
+Thumbs.db
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+sourcemap.json
+rojo.lock
+node_modules/
+.vscode/
+.idea/
+*.log
