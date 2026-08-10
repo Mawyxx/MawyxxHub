@@ -1,4 +1,13 @@
--- RightShift toggles hub. Always relayout after open so columns fit.
+-- RightShift / close: scale open (small→big) and close (big→small).
+
+local CreateMod = require(script.Parent.Parent.visual.Create)
+local Create = CreateMod.Create
+
+local OPEN_INFO = TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local CLOSE_INFO = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+local OPEN_MS = 0.25
+local CLOSE_MS = 0.2
+local MIN_SCALE = 0.04
 
 local Shortcuts = {}
 
@@ -12,13 +21,24 @@ function Shortcuts.setup(hub)
 	local w = hub.config.window.width
 	local h = hub.config.window.height
 
+	-- Always full logical size; visibility via UIScale (keeps layout correct while animating)
+	hub.window.Size = UDim2.new(0, w, 0, h)
+	hub.window.AnchorPoint = Vector2.new(0.5, 0.5)
+
+	local scale = hub.window:FindFirstChildOfClass("UIScale")
+	if not scale then
+		scale = Create("UIScale", {
+			Parent = hub.window,
+			Scale = 1,
+		})
+	end
+	hub._windowScale = scale
+
 	local visible = not startHidden
 	hub.window.Visible = visible
-	if visible then
-		hub.window.Size = UDim2.new(0, w, 0, h)
-	else
-		hub.window.Size = UDim2.new(0, w, 0, 0)
-	end
+	scale.Scale = visible and 1 or MIN_SCALE
+
+	local animToken = 0
 
 	local function runLayouts()
 		local hooks = hub._layoutHooks
@@ -31,21 +51,56 @@ function Shortcuts.setup(hub)
 	end
 
 	local function setOpen(open)
+		if hub._destroyed then
+			return
+		end
+		if open == visible and hub.window.Visible == open then
+			return
+		end
+
+		animToken += 1
+		local token = animToken
 		visible = open
+
 		if open then
 			hub.window.Visible = true
-			-- Set final size immediately so AbsoluteSize is correct for layout
 			hub.window.Size = UDim2.new(0, w, 0, h)
+			scale.Scale = MIN_SCALE
 			runLayouts()
 			task.defer(runLayouts)
-			task.delay(0.05, runLayouts)
+
+			if hub.config.animations == false then
+				scale.Scale = 1
+				runLayouts()
+				return
+			end
+
+			hub:tween(scale, { Scale = 1 }, OPEN_INFO)
+			task.delay(0.05, function()
+				if token == animToken and not hub._destroyed then
+					runLayouts()
+				end
+			end)
+			task.delay(OPEN_MS, function()
+				if token == animToken and not hub._destroyed then
+					runLayouts()
+				end
+			end)
 		else
-			hub:tween(hub.window, {
-				Size = UDim2.new(0, w, 0, 0),
-			})
-			task.delay(0.2, function()
-				if not visible and not hub._destroyed then
+			if hub.config.animations == false then
+				scale.Scale = MIN_SCALE
+				hub.window.Visible = false
+				return
+			end
+
+			hub:tween(scale, { Scale = MIN_SCALE }, CLOSE_INFO)
+			task.delay(CLOSE_MS, function()
+				if token ~= animToken or hub._destroyed then
+					return
+				end
+				if not visible then
 					hub.window.Visible = false
+					scale.Scale = MIN_SCALE
 				end
 			end)
 		end
