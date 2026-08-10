@@ -2698,8 +2698,8 @@ __modules["window/CustomCursor"] = function(__require)
 			if hub._destroyed then
 				return
 			end
-			local getter = input.GetMouseLocationGui or input.GetMouseLocation
-			local m = getter()
+			-- Cursor ScreenGui uses IgnoreGuiInset=true → raw screen coords (not Gui-inset space)
+			local m = input.GetMouseLocation()
 			root.Position = UDim2.fromOffset(m.X, m.Y)
 		end
 	
