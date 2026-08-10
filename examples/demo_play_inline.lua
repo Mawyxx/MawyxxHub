@@ -196,30 +196,68 @@ local function updateTracer(frame, from, to, color)
 	local mid = (from + to) / 2
 	local delta = to - from
 	local length = delta.Magnitude
-	if length < 1 then
+	if length < 2 then
 		frame.Visible = false
 		return
 	end
 	frame.Visible = true
 	frame.BackgroundColor3 = color
-	frame.Size = UDim2.fromOffset(math.max(1, length), 1)
+	frame.Size = UDim2.fromOffset(length, 1)
 	frame.Position = UDim2.fromOffset(mid.X, mid.Y)
 	frame.Rotation = math.deg(math.atan2(delta.Y, delta.X))
 end
 
--- Always resolve a 2D point toward the target — even behind cam / off-screen
-local function worldToAlwaysPoint(cam, worldPos, viewport)
-	local screen = cam:WorldToViewportPoint(worldPos)
-	local x, y = screen.X, screen.Y
-	-- Behind camera: mirror through screen center so the line still points at them
-	if screen.Z < 0 then
-		x = viewport.X - x
-		y = viewport.Y - y
+-- Clip ray from→dir to the viewport rectangle (first hit on an edge)
+local function rayToScreenEdge(from, dir, viewport)
+	local mag = dir.Magnitude
+	if mag < 1e-6 then
+		return from
 	end
-	local margin = 2
-	x = math.clamp(x, margin, math.max(margin, viewport.X - margin))
-	y = math.clamp(y, margin, math.max(margin, viewport.Y - margin))
-	return Vector2.new(x, y)
+	dir = dir / mag
+	local w, h = viewport.X, viewport.Y
+	local bestT = math.huge
+	local function hit(t)
+		if t > 1e-4 and t < bestT then
+			bestT = t
+		end
+	end
+	if math.abs(dir.X) > 1e-8 then
+		hit((0 - from.X) / dir.X)
+		hit((w - from.X) / dir.X)
+	end
+	if math.abs(dir.Y) > 1e-8 then
+		hit((0 - from.Y) / dir.Y)
+		hit((h - from.Y) / dir.Y)
+	end
+	if bestT == math.huge then
+		return from
+	end
+	local p = from + dir * bestT
+	-- Keep endpoint slightly inside so the line stays visible
+	return Vector2.new(math.clamp(p.X, 1, w - 1), math.clamp(p.Y, 1, h - 1))
+end
+
+-- Endpoint always toward the player — behind cam / off-screen included (no stub near feet)
+local function worldToTracerEnd(cam, worldPos, from, viewport)
+	local screen = cam:WorldToViewportPoint(worldPos)
+	local to = Vector2.new(screen.X, screen.Y)
+
+	if screen.Z >= 0 then
+		-- In front: if on-screen use exact point; if off-screen, extend to edge
+		local onScreen = to.X >= 0 and to.X <= viewport.X and to.Y >= 0 and to.Y <= viewport.Y
+		if onScreen then
+			return to
+		end
+		return rayToScreenEdge(from, to - from, viewport)
+	end
+
+	-- Behind camera: aim by camera-local XY (look is -Z)
+	local rel = cam.CFrame:PointToObjectSpace(worldPos)
+	local dir = Vector2.new(rel.X, -rel.Y)
+	if dir.Magnitude < 1e-4 then
+		dir = Vector2.new(0, 1)
+	end
+	return rayToScreenEdge(from, dir, viewport)
 end
 
 local function applyWalkSpeed()
@@ -438,9 +476,12 @@ local renderConn = RunService.RenderStepped:Connect(function()
 				end
 
 				if tracers then
-					local fromY = flag("play_tracer_bottom", true) and origin.Y or (origin.Y * 0.5)
-					local to = worldToAlwaysPoint(Camera, root.Position, origin)
-					updateTracer(e.tracer, Vector2.new(origin.X / 2, fromY), to, color)
+					-- FP-friendly default: center; optional bottom origin
+					local from = flag("play_tracer_bottom", false)
+							and Vector2.new(origin.X / 2, origin.Y - 2)
+						or Vector2.new(origin.X / 2, origin.Y / 2)
+					local to = worldToTracerEnd(Camera, root.Position, from, origin)
+					updateTracer(e.tracer, from, to, color)
 				else
 					e.tracer.Visible = false
 				end
@@ -487,7 +528,7 @@ hub:addColorPicker(esp, "color", "play_esp_color", Color3.fromRGB(118, 100, 200)
 hub:addSlider(esp, "maxdistance", "play_maxdistance", 100, 5000, 50, 2500)
 
 hub:addToggle(tracersG, "tracers", "play_esp_tracers", true)
-hub:addToggle(tracersG, "from bottom", "play_tracer_bottom", true)
+hub:addToggle(tracersG, "from bottom", "play_tracer_bottom", false)
 
 local move = hub:addGroup(playerTab, "Movement")
 local cam = hub:addGroup(playerTab, "Camera")
