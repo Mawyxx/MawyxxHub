@@ -1,4 +1,4 @@
--- Sweet-spot defaults: compact but no clipping.
+-- QuantHub-like contrast: near-black chrome, lifted panels, bright lavender accent.
 
 local Defaults = {
 	window = {
@@ -8,19 +8,20 @@ local Defaults = {
 		title = "MawyxxHub",
 	},
 	colors = {
-		bg = Color3.fromRGB(8, 8, 9),
-		surface = Color3.fromRGB(10, 10, 11),
-		surface2 = Color3.fromRGB(13, 13, 14),
-		surfaceHover = Color3.fromRGB(17, 17, 18),
-		border = Color3.fromRGB(31, 31, 33),
-		borderSoft = Color3.fromRGB(23, 23, 25),
-		text = Color3.fromRGB(224, 224, 226),
-		textSoft = Color3.fromRGB(156, 156, 160),
-		textMuted = Color3.fromRGB(91, 91, 95),
-		purple = Color3.fromRGB(117, 72, 255),
-		purpleHover = Color3.fromRGB(132, 91, 255),
-		purpleDark = Color3.fromRGB(87, 49, 190),
-		white = Color3.fromRGB(245, 245, 247),
+		bg = Color3.fromRGB(10, 10, 10),
+		surface = Color3.fromRGB(18, 18, 18),
+		surface2 = Color3.fromRGB(24, 24, 24),
+		surfaceHover = Color3.fromRGB(32, 32, 34),
+		border = Color3.fromRGB(42, 42, 46),
+		borderSoft = Color3.fromRGB(34, 34, 38),
+		text = Color3.fromRGB(235, 235, 240),
+		textSoft = Color3.fromRGB(175, 175, 182),
+		textMuted = Color3.fromRGB(110, 110, 118),
+		-- Bright lavender accent (QuantHub-style) — sliders / toggles / brand
+		purple = Color3.fromRGB(157, 141, 255),
+		purpleHover = Color3.fromRGB(178, 165, 255),
+		purpleDark = Color3.fromRGB(115, 98, 210),
+		white = Color3.fromRGB(255, 255, 255),
 	},
 	font = Enum.Font.Code,
 	animations = true,

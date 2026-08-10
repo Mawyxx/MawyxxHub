@@ -129,7 +129,7 @@ __modules["adapters/RobloxTween"] = function(__require)
 end
 
 __modules["config/Defaults"] = function(__require)
-	-- Sweet-spot defaults: compact but no clipping.
+	-- QuantHub-like contrast: near-black chrome, lifted panels, bright lavender accent.
 	
 	local Defaults = {
 		window = {
@@ -139,19 +139,20 @@ __modules["config/Defaults"] = function(__require)
 			title = "MawyxxHub",
 		},
 		colors = {
-			bg = Color3.fromRGB(8, 8, 9),
-			surface = Color3.fromRGB(10, 10, 11),
-			surface2 = Color3.fromRGB(13, 13, 14),
-			surfaceHover = Color3.fromRGB(17, 17, 18),
-			border = Color3.fromRGB(31, 31, 33),
-			borderSoft = Color3.fromRGB(23, 23, 25),
-			text = Color3.fromRGB(224, 224, 226),
-			textSoft = Color3.fromRGB(156, 156, 160),
-			textMuted = Color3.fromRGB(91, 91, 95),
-			purple = Color3.fromRGB(117, 72, 255),
-			purpleHover = Color3.fromRGB(132, 91, 255),
-			purpleDark = Color3.fromRGB(87, 49, 190),
-			white = Color3.fromRGB(245, 245, 247),
+			bg = Color3.fromRGB(10, 10, 10),
+			surface = Color3.fromRGB(18, 18, 18),
+			surface2 = Color3.fromRGB(24, 24, 24),
+			surfaceHover = Color3.fromRGB(32, 32, 34),
+			border = Color3.fromRGB(42, 42, 46),
+			borderSoft = Color3.fromRGB(34, 34, 38),
+			text = Color3.fromRGB(235, 235, 240),
+			textSoft = Color3.fromRGB(175, 175, 182),
+			textMuted = Color3.fromRGB(110, 110, 118),
+			-- Bright lavender accent (QuantHub-style) — sliders / toggles / brand
+			purple = Color3.fromRGB(157, 141, 255),
+			purpleHover = Color3.fromRGB(178, 165, 255),
+			purpleDark = Color3.fromRGB(115, 98, 210),
+			white = Color3.fromRGB(255, 255, 255),
 		},
 		font = Enum.Font.Code,
 		animations = true,
@@ -1095,7 +1096,7 @@ __modules["controls/Toggle"] = function(__require)
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, 0, 0.5, 0),
 			Size = UDim2.new(0, 50, 0, 22),
-			BackgroundColor3 = state and config.colors.purple or config.colors.surfaceHover,
+			BackgroundColor3 = state and config.colors.purple or config.colors.surface2,
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
@@ -1106,7 +1107,7 @@ __modules["controls/Toggle"] = function(__require)
 			PaddingRight = UDim.new(0, 4),
 		})
 		Corner(toggleBtn, 11)
-		Stroke(toggleBtn, config.colors.borderSoft, 1)
+		Stroke(toggleBtn, config.colors.border, 1)
 	
 		local knob = Create("Frame", {
 			Parent = toggleBtn,
@@ -1122,7 +1123,7 @@ __modules["controls/Toggle"] = function(__require)
 			state = newState and true or false
 			hub.deps.settings.Set(hub.settings, flag, state)
 			hub:tween(toggleBtn, {
-				BackgroundColor3 = state and config.colors.purple or config.colors.surfaceHover,
+				BackgroundColor3 = state and config.colors.purple or config.colors.surface2,
 			})
 			hub:tween(knob, {
 				Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
@@ -1832,13 +1833,13 @@ __modules["navigation/Groups"] = function(__require)
 			Name = "Group_" .. group.name,
 			Parent = parent,
 			Size = UDim2.new(1, 0, 0, 0),
-			BackgroundColor3 = config.colors.bg,
+			BackgroundColor3 = config.colors.surface,
 			BorderSizePixel = 0,
 			ClipsDescendants = false, -- never clip toggles/sliders at the card edge
 			AutomaticSize = Enum.AutomaticSize.Y,
 			LayoutOrder = layoutOrder or 0,
 		})
-		Stroke(frame, config.colors.borderSoft, 1)
+		Stroke(frame, config.colors.border, 1)
 		Corner(frame, g.corner or 4)
 	
 		Create("UIListLayout", {
@@ -1854,7 +1855,7 @@ __modules["navigation/Groups"] = function(__require)
 			BorderSizePixel = 0,
 			LayoutOrder = 1,
 		})
-		local header = TextLabel(headerRow, group.name, 15, config.colors.text, config.font)
+		local header = TextLabel(headerRow, group.name, 15, config.colors.textSoft, config.font)
 		header.Position = UDim2.new(0, inset, 0, 0)
 		header.Size = UDim2.new(1, -inset * 2, 1, 0)
 	
@@ -2197,11 +2198,11 @@ __modules["navigation/Sidebar"] = function(__require)
 		for tab, data in pairs(hub.navButtons) do
 			local active = tab == hub.activeTab
 			hub:tween(data.btn, {
-				BackgroundTransparency = active and 0.92 or 1,
-				BackgroundColor3 = active and hub.config.colors.purple or hub.config.colors.bg,
+				BackgroundTransparency = active and 0.88 or 1,
+				BackgroundColor3 = active and hub.config.colors.surface2 or hub.config.colors.bg,
 			})
 			hub:tween(data.label, {
-				TextColor3 = active and hub.config.colors.text or hub.config.colors.textSoft,
+				TextColor3 = active and hub.config.colors.purple or hub.config.colors.textSoft,
 			})
 		end
 	end
@@ -2873,9 +2874,9 @@ hub:addToggle(ui, "Animations", "demo_ui_anim", true)
 hub:addDropdown(ui, "Accent", "demo_accent", { "Purple", "Blue", "Red" }, "Purple", function(name)
 	local accents = {
 		Purple = {
-			purple = Color3.fromRGB(117, 72, 255),
-			purpleHover = Color3.fromRGB(132, 91, 255),
-			purpleDark = Color3.fromRGB(87, 49, 190),
+			purple = Color3.fromRGB(157, 141, 255),
+			purpleHover = Color3.fromRGB(178, 165, 255),
+			purpleDark = Color3.fromRGB(115, 98, 210),
 		},
 		Blue = {
 			purple = Color3.fromRGB(70, 140, 255),

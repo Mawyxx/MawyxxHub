@@ -34,7 +34,7 @@ function Toggle.build(hub, element)
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
 		Size = UDim2.new(0, 50, 0, 22),
-		BackgroundColor3 = state and config.colors.purple or config.colors.surfaceHover,
+		BackgroundColor3 = state and config.colors.purple or config.colors.surface2,
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
@@ -45,7 +45,7 @@ function Toggle.build(hub, element)
 		PaddingRight = UDim.new(0, 4),
 	})
 	Corner(toggleBtn, 11)
-	Stroke(toggleBtn, config.colors.borderSoft, 1)
+	Stroke(toggleBtn, config.colors.border, 1)
 
 	local knob = Create("Frame", {
 		Parent = toggleBtn,
@@ -61,7 +61,7 @@ function Toggle.build(hub, element)
 		state = newState and true or false
 		hub.deps.settings.Set(hub.settings, flag, state)
 		hub:tween(toggleBtn, {
-			BackgroundColor3 = state and config.colors.purple or config.colors.surfaceHover,
+			BackgroundColor3 = state and config.colors.purple or config.colors.surface2,
 		})
 		hub:tween(knob, {
 			Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),

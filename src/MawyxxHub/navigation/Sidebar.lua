@@ -71,11 +71,11 @@ function Sidebar.updateHighlight(hub)
 	for tab, data in pairs(hub.navButtons) do
 		local active = tab == hub.activeTab
 		hub:tween(data.btn, {
-			BackgroundTransparency = active and 0.92 or 1,
-			BackgroundColor3 = active and hub.config.colors.purple or hub.config.colors.bg,
+			BackgroundTransparency = active and 0.88 or 1,
+			BackgroundColor3 = active and hub.config.colors.surface2 or hub.config.colors.bg,
 		})
 		hub:tween(data.label, {
-			TextColor3 = active and hub.config.colors.text or hub.config.colors.textSoft,
+			TextColor3 = active and hub.config.colors.purple or hub.config.colors.textSoft,
 		})
 	end
 end

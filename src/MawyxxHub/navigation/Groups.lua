@@ -21,13 +21,13 @@ function Groups.render(hub, group, parent, layoutOrder, elements)
 		Name = "Group_" .. group.name,
 		Parent = parent,
 		Size = UDim2.new(1, 0, 0, 0),
-		BackgroundColor3 = config.colors.bg,
+		BackgroundColor3 = config.colors.surface,
 		BorderSizePixel = 0,
 		ClipsDescendants = false, -- never clip toggles/sliders at the card edge
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = layoutOrder or 0,
 	})
-	Stroke(frame, config.colors.borderSoft, 1)
+	Stroke(frame, config.colors.border, 1)
 	Corner(frame, g.corner or 4)
 
 	Create("UIListLayout", {
@@ -43,7 +43,7 @@ function Groups.render(hub, group, parent, layoutOrder, elements)
 		BorderSizePixel = 0,
 		LayoutOrder = 1,
 	})
-	local header = TextLabel(headerRow, group.name, 15, config.colors.text, config.font)
+	local header = TextLabel(headerRow, group.name, 15, config.colors.textSoft, config.font)
 	header.Position = UDim2.new(0, inset, 0, 0)
 	header.Size = UDim2.new(1, -inset * 2, 1, 0)
 
