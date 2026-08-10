@@ -1,6 +1,6 @@
 -- Inline demo body (appended by bundle into dist runner). No HttpGet.
 
-print("[MawyxxHub] demo ready")
+print("[MawyxxHub] demo ready — palette #111/#000/#7B52FF")
 
 local MawyxxHub = __require("init")
 assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")
