@@ -14,9 +14,9 @@ local function httpGet(url)
 	return game:GetService("HttpService"):GetAsync(url)
 end
 
--- Fresh filename so executors don't keep the old cycle-color bundle
-local source = httpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.bundle.lua")
-assert(string.find(source, "MAWYXX_COLOR_PALETTE_V2", 1, true), "[MawyxxHub] bad/old bundle — no color palette")
+-- Fresh filename so executors don't keep the old cycle-color / palette bundle
+local source = httpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.hsv.lua")
+assert(string.find(source, "MAWYXX_COLOR_HSV_V3", 1, true), "[MawyxxHub] bad/old bundle — need HSV color picker")
 
 local MawyxxHub = loadstring(source)()
 
@@ -95,4 +95,4 @@ hub:addButton(danger, "Destroy hub", function()
 	hub:Destroy()
 end)
 
-print("[MawyxxHub] Demo ready — RightShift. Color = palette + OK/Cancel")
+print("[MawyxxHub] Demo ready — RightShift. Color = HSV square + hue strip")

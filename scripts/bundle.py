@@ -93,10 +93,11 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     text = "\n".join(parts)
     OUT.write_text(text, encoding="utf-8", newline="\n")
-    alt = OUT.parent / "MawyxxHub.bundle.lua"
-    alt.write_text(text, encoding="utf-8", newline="\n")
+    for name in ("MawyxxHub.bundle.lua", "MawyxxHub.hsv.lua"):
+        alt = OUT.parent / name
+        alt.write_text(text, encoding="utf-8", newline="\n")
+        print(f"Wrote {alt}")
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes, {len(files)} modules, leftover={leftover})")
-    print(f"Wrote {alt}")
 
 
 if __name__ == "__main__":

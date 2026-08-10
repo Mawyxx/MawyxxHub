@@ -1,5 +1,5 @@
--- Color picker: click swatch → mini palette → OK / Cancel.
--- MAWYXX_COLOR_PALETTE_V2
+-- Color picker: click swatch → HSV square + hue strip → OK / Cancel.
+-- MAWYXX_COLOR_HSV_V3
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 
@@ -7,39 +7,28 @@ local Create = CreateMod.Create
 local Stroke = CreateMod.Stroke
 local Corner = CreateMod.Corner
 
-local PALETTE = {
-	Color3.fromRGB(255, 255, 255),
-	Color3.fromRGB(200, 200, 205),
-	Color3.fromRGB(120, 120, 128),
-	Color3.fromRGB(40, 40, 44),
-	Color3.fromRGB(0, 0, 0),
-	Color3.fromRGB(255, 70, 70),
-	Color3.fromRGB(255, 120, 50),
-	Color3.fromRGB(255, 210, 60),
-	Color3.fromRGB(100, 220, 90),
-	Color3.fromRGB(60, 200, 160),
-	Color3.fromRGB(70, 170, 255),
-	Color3.fromRGB(117, 72, 255),
-	Color3.fromRGB(180, 90, 255),
-	Color3.fromRGB(255, 90, 180),
-	Color3.fromRGB(160, 100, 60),
-	Color3.fromRGB(90, 200, 255),
-}
-
-local COLS = 4
-local CELL = 28
-local GAP = 6
-local PANEL_PAD = 10
+local PANEL_PAD = 12
+local SV = 148
+local HUE_W = 18
+local GAP = 10
+local PREVIEW_H = 22
 local BTN_H = 28
+local MARKER = 12
 
-local function colorNear(a, b)
-	return math.abs(a.R - b.R) < 1e-3 and math.abs(a.G - b.G) < 1e-3 and math.abs(a.B - b.B) < 1e-3
+local function clamp01(n)
+	return math.clamp(n, 0, 1)
+end
+
+local function toHSV(c)
+	local h, s, v = c:ToHSV()
+	return h, s, v
 end
 
 local ColorPicker = {}
 
 function ColorPicker.build(hub, element)
 	local config = hub.config
+	local input = hub.deps.input
 	local flag = element.flag
 	local color = hub.settings[flag]
 	if color == nil then
@@ -75,13 +64,9 @@ function ColorPicker.build(hub, element)
 	Stroke(swatch, config.colors.border, 1)
 	Corner(swatch, 3)
 
-	local gridRows = math.ceil(#PALETTE / COLS)
-	local gridW = COLS * CELL + (COLS - 1) * GAP
-	local gridH = gridRows * CELL + (gridRows - 1) * GAP
-	local panelW = gridW + PANEL_PAD * 2
-	local panelH = PANEL_PAD + gridH + 8 + 22 + 8 + BTN_H + PANEL_PAD
+	local panelW = PANEL_PAD + SV + GAP + HUE_W + PANEL_PAD
+	local panelH = PANEL_PAD + SV + GAP + PREVIEW_H + GAP + BTN_H + PANEL_PAD
 
-	-- Parent to ScreenGui so the menu is never clipped by content/groups
 	local host = hub.screenGui
 	local panel = Create("Frame", {
 		Name = "MawyxxColorPalette",
@@ -97,24 +82,120 @@ function ColorPicker.build(hub, element)
 	Corner(panel, 6)
 	hub._pageMaid:Give(panel)
 
-	local grid = Create("Frame", {
+	local h, s, v = toHSV(color)
+	local pending = color
+	local committed = color
+	local open = false
+	local draggingSV = false
+	local draggingHue = false
+
+	-- Saturation / Value square
+	local svFrame = Create("TextButton", {
 		Parent = panel,
 		Position = UDim2.fromOffset(PANEL_PAD, PANEL_PAD),
-		Size = UDim2.fromOffset(gridW, gridH),
-		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(SV, SV),
+		BackgroundColor3 = Color3.fromHSV(h, 1, 1),
 		BorderSizePixel = 0,
+		Text = "",
+		AutoButtonColor = false,
+		ClipsDescendants = true,
 		ZIndex = 1001,
 	})
+	Corner(svFrame, 4)
+	Stroke(svFrame, config.colors.borderSoft, 1)
 
-	local pending = color
-	local open = false
-	local committed = color
-	local cellButtons = {}
+	local whiteWash = Create("Frame", {
+		Parent = svFrame,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		ZIndex = 1002,
+	})
+	Create("UIGradient", {
+		Parent = whiteWash,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+	})
+
+	local blackWash = Create("Frame", {
+		Parent = svFrame,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BorderSizePixel = 0,
+		ZIndex = 1003,
+	})
+	Create("UIGradient", {
+		Parent = blackWash,
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(1, 0),
+		}),
+	})
+
+	local svMarker = Create("Frame", {
+		Parent = svFrame,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(MARKER, MARKER),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ZIndex = 1004,
+	})
+	Stroke(svMarker, Color3.new(1, 1, 1), 2)
+	Corner(svMarker, MARKER / 2)
+	Create("UIStroke", {
+		Parent = svMarker,
+		Color = Color3.new(0, 0, 0),
+		Thickness = 1,
+		Transparency = 0.35,
+	})
+
+	-- Hue strip (side)
+	local hueFrame = Create("TextButton", {
+		Parent = panel,
+		Position = UDim2.fromOffset(PANEL_PAD + SV + GAP, PANEL_PAD),
+		Size = UDim2.fromOffset(HUE_W, SV),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Text = "",
+		AutoButtonColor = false,
+		ClipsDescendants = true,
+		ZIndex = 1001,
+	})
+	Corner(hueFrame, 4)
+	Stroke(hueFrame, config.colors.borderSoft, 1)
+	Create("UIGradient", {
+		Parent = hueFrame,
+		Rotation = 90,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromHSV(0, 1, 1)),
+			ColorSequenceKeypoint.new(0.16, Color3.fromHSV(0.16, 1, 1)),
+			ColorSequenceKeypoint.new(0.33, Color3.fromHSV(0.33, 1, 1)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5, 1, 1)),
+			ColorSequenceKeypoint.new(0.66, Color3.fromHSV(0.66, 1, 1)),
+			ColorSequenceKeypoint.new(0.83, Color3.fromHSV(0.83, 1, 1)),
+			ColorSequenceKeypoint.new(1, Color3.fromHSV(1, 1, 1)),
+		}),
+	})
+
+	local hueMarker = Create("Frame", {
+		Parent = hueFrame,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, h, 0),
+		Size = UDim2.new(1, 4, 0, 4),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		ZIndex = 1004,
+	})
+	Stroke(hueMarker, Color3.new(0, 0, 0), 1)
+	Corner(hueMarker, 2)
 
 	local preview = Create("Frame", {
 		Parent = panel,
-		Position = UDim2.fromOffset(PANEL_PAD, PANEL_PAD + gridH + 8),
-		Size = UDim2.fromOffset(gridW, 22),
+		Position = UDim2.fromOffset(PANEL_PAD, PANEL_PAD + SV + GAP),
+		Size = UDim2.fromOffset(SV + GAP + HUE_W, PREVIEW_H),
 		BackgroundColor3 = pending,
 		BorderSizePixel = 0,
 		ZIndex = 1001,
@@ -122,39 +203,8 @@ function ColorPicker.build(hub, element)
 	Stroke(preview, config.colors.borderSoft, 1)
 	Corner(preview, 3)
 
-	local function refreshSelection()
-		preview.BackgroundColor3 = pending
-		for _, data in ipairs(cellButtons) do
-			local selected = colorNear(data.color, pending)
-			data.stroke.Color = selected and config.colors.purple or config.colors.borderSoft
-			data.stroke.Thickness = selected and 2 or 1
-		end
-	end
-
-	for i, c in ipairs(PALETTE) do
-		local col = ((i - 1) % COLS)
-		local r = math.floor((i - 1) / COLS)
-		local cell = Create("TextButton", {
-			Parent = grid,
-			Position = UDim2.fromOffset(col * (CELL + GAP), r * (CELL + GAP)),
-			Size = UDim2.fromOffset(CELL, CELL),
-			BackgroundColor3 = c,
-			BorderSizePixel = 0,
-			Text = "",
-			AutoButtonColor = false,
-			ZIndex = 1002,
-		})
-		Corner(cell, 4)
-		local cellStroke = Stroke(cell, config.colors.borderSoft, 1)
-		table.insert(cellButtons, { color = c, stroke = cellStroke })
-		hub._pageMaid:Connect(cell.MouseButton1Click, function()
-			pending = c
-			refreshSelection()
-		end)
-	end
-
-	local btnY = PANEL_PAD + gridH + 8 + 22 + 8
-	local btnW = math.floor((gridW - GAP) / 2)
+	local btnY = PANEL_PAD + SV + GAP + PREVIEW_H + GAP
+	local btnW = math.floor((SV + GAP + HUE_W - GAP) / 2)
 
 	local cancelBtn = Create("TextButton", {
 		Parent = panel,
@@ -188,6 +238,14 @@ function ColorPicker.build(hub, element)
 	Stroke(okBtn, config.colors.purple, 1)
 	Corner(okBtn, 4)
 
+	local function syncFromHSV()
+		pending = Color3.fromHSV(h, s, v)
+		svFrame.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+		svMarker.Position = UDim2.fromScale(s, 1 - v)
+		hueMarker.Position = UDim2.new(0.5, 0, h, 0)
+		preview.BackgroundColor3 = pending
+	end
+
 	local function apply(newColor, fireCallback)
 		color = newColor
 		committed = newColor
@@ -200,19 +258,41 @@ function ColorPicker.build(hub, element)
 
 	local function closePanel()
 		open = false
+		draggingSV = false
+		draggingHue = false
 		panel.Visible = false
 	end
 
+	local function sampleSV(screenX, screenY)
+		local pos = svFrame.AbsolutePosition
+		local size = svFrame.AbsoluteSize
+		s = clamp01((screenX - pos.X) / math.max(size.X, 1))
+		v = clamp01(1 - (screenY - pos.Y) / math.max(size.Y, 1))
+		syncFromHSV()
+	end
+
+	local function sampleHue(screenY)
+		local pos = hueFrame.AbsolutePosition
+		local size = hueFrame.AbsoluteSize
+		h = clamp01((screenY - pos.Y) / math.max(size.Y, 1))
+		syncFromHSV()
+	end
+
 	local function openPanel()
-		pending = committed
-		refreshSelection()
+		h, s, v = toHSV(committed)
+		-- Keep a usable hue when color is near black/white
+		if s < 0.01 and v > 0.99 then
+			h = h
+		elseif v < 0.01 then
+			-- keep previous h
+		end
+		syncFromHSV()
 
 		local pos = swatch.AbsolutePosition
 		local size = swatch.AbsoluteSize
 		local guiPos = host.AbsolutePosition
 		local guiSize = host.AbsoluteSize
 
-		-- AbsolutePosition is screen-space; ScreenGui children use offset from gui origin
 		local x = pos.X - guiPos.X + size.X - panelW
 		local y = pos.Y - guiPos.Y + size.Y + 6
 
@@ -235,11 +315,12 @@ function ColorPicker.build(hub, element)
 	end
 
 	hub._bindings[flag] = {
-		apply = function(v)
-			apply(v, false)
-			pending = v
-			committed = v
-			refreshSelection()
+		apply = function(val)
+			apply(val, false)
+			h, s, v = toHSV(val)
+			pending = val
+			committed = val
+			syncFromHSV()
 		end,
 		read = function()
 			return color
@@ -248,16 +329,52 @@ function ColorPicker.build(hub, element)
 
 	hub._pageMaid:Connect(swatch.MouseButton1Click, function()
 		if open then
-			pending = committed
+			h, s, v = toHSV(committed)
+			syncFromHSV()
 			closePanel()
 			return
 		end
 		openPanel()
 	end)
 
+	hub._pageMaid:Connect(svFrame.MouseButton1Down, function()
+		draggingSV = true
+		draggingHue = false
+		local mouse = input.GetMouseLocation()
+		sampleSV(mouse.X, mouse.Y)
+	end)
+
+	hub._pageMaid:Connect(hueFrame.MouseButton1Down, function()
+		draggingHue = true
+		draggingSV = false
+		local mouse = input.GetMouseLocation()
+		sampleHue(mouse.Y)
+	end)
+
+	hub._pageMaid:Connect(input.InputChanged, function(inp)
+		if not open then
+			return
+		end
+		if inp.UserInputType ~= Enum.UserInputType.MouseMovement then
+			return
+		end
+		if draggingSV then
+			sampleSV(inp.Position.X, inp.Position.Y)
+		elseif draggingHue then
+			sampleHue(inp.Position.Y)
+		end
+	end)
+
+	hub._pageMaid:Connect(input.InputEnded, function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+			draggingSV = false
+			draggingHue = false
+		end
+	end)
+
 	hub._pageMaid:Connect(cancelBtn.MouseButton1Click, function()
-		pending = committed
-		refreshSelection()
+		h, s, v = toHSV(committed)
+		syncFromHSV()
 		closePanel()
 	end)
 
@@ -279,7 +396,7 @@ function ColorPicker.build(hub, element)
 		hub:tween(okBtn, { BackgroundColor3 = config.colors.purpleDark })
 	end)
 
-	refreshSelection()
+	syncFromHSV()
 	return row
 end
 
