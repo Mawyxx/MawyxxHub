@@ -142,7 +142,8 @@ function Build.window(hub)
 		PlaceholderColor3 = config.colors.textMuted,
 		TextColor3 = config.colors.text,
 		TextSize = 14,
-		Font = config.font,
+		-- Code font has poor Cyrillic; Gotham accepts Russian input in TextBox
+		Font = Enum.Font.Gotham,
 		ClearTextOnFocus = false,
 		BorderSizePixel = 0,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -153,10 +154,12 @@ function Build.window(hub)
 	hub.searchBox = search
 
 	if searchEnabled then
-		hub._maid:Connect(search:GetPropertyChangedSignal("Text"), function()
-			hub.searchQuery = search.Text
+		local function syncSearch()
+			hub.searchQuery = search.Text or ""
 			hub:_refreshPages()
-		end)
+		end
+		hub._maid:Connect(search:GetPropertyChangedSignal("Text"), syncSearch)
+		hub._maid:Connect(search.FocusLost, syncSearch)
 	end
 
 	local closeRed = Color3.fromRGB(220, 55, 60)

@@ -1419,48 +1419,83 @@ __modules["init"] = function(__require)
 end
 
 __modules["model/Filter"] = function(__require)
-	-- Search / filter helpers: Tab → Group → Control.
-	-- ASCII + Cyrillic case-fold (string.lower is ASCII-only).
+	-- Search / filter: ASCII + Cyrillic, byte-safe (no string.lower on UTF-8).
 	
 	local Filter = {}
 	
-	local function foldChar(code)
-		-- A-Z
-		if code >= 0x41 and code <= 0x5A then
-			return code + 0x20
-		end
-		-- А-Я (Cyrillic)
-		if code >= 0x410 and code <= 0x42F then
-			return code + 0x20
-		end
-		-- Ё
-		if code == 0x401 then
-			return 0x451
-		end
-		return code
-	end
-	
+	-- Fold without utf8 lib edge-cases: walk UTF-8 bytes for Cyrillic А-Я / Ё and ASCII A-Z.
 	local function norm(s)
 		s = tostring(s or "")
 		if s == "" then
 			return ""
 		end
-		local parts = table.create(#s)
+	
+		local out = table.create(#s)
 		local n = 0
-		for _, code in utf8.codes(s) do
-			n += 1
-			parts[n] = utf8.char(foldChar(code))
+		local i = 1
+		local len = #s
+	
+		while i <= len do
+			local b1 = string.byte(s, i)
+	
+			-- UTF-8 2-byte Cyrillic (D0/D1 …)
+			if (b1 == 0xD0 or b1 == 0xD1) and i < len then
+				local b2 = string.byte(s, i + 1)
+				-- Ё U+0401 = D0 81 → ё U+0451 = D1 91
+				if b1 == 0xD0 and b2 == 0x81 then
+					n += 1
+					out[n] = "\209\145" -- D1 91
+					i += 2
+				-- А-П U+0410..041F = D0 90..9F → а-п D0 B0..BF
+				elseif b1 == 0xD0 and b2 >= 0x90 and b2 <= 0x9F then
+					n += 1
+					out[n] = string.char(0xD0, b2 + 0x20)
+					i += 2
+				-- Р-Я U+0420..042F = D0 A0..AF → р-я D1 80..8F
+				elseif b1 == 0xD0 and b2 >= 0xA0 and b2 <= 0xAF then
+					n += 1
+					out[n] = string.char(0xD1, b2 - 0x20)
+					i += 2
+				else
+					-- already lower Cyrillic or other D0/D1 char — keep
+					n += 1
+					out[n] = string.char(b1, b2)
+					i += 2
+				end
+			elseif b1 >= 0x41 and b1 <= 0x5A then
+				n += 1
+				out[n] = string.char(b1 + 0x20)
+				i += 1
+			else
+				n += 1
+				out[n] = string.sub(s, i, i)
+				i += 1
+			end
 		end
-		return table.concat(parts)
+	
+		return table.concat(out)
+	end
+	
+	local function contains(haystack, needle)
+		if needle == "" then
+			return true
+		end
+		if string.find(haystack, needle, 1, true) then
+			return true
+		end
+		-- raw fallback (in case fold missed something)
+		return false
 	end
 	
 	function Filter.matchesQuery(query, ...)
-		local q = norm(query)
-		if q == "" then
+		local qRaw = tostring(query or "")
+		if qRaw == "" then
 			return true
 		end
+		local q = norm(qRaw)
 		for i = 1, select("#", ...) do
-			if string.find(norm(select(i, ...)), q, 1, true) then
+			local text = tostring(select(i, ...) or "")
+			if contains(norm(text), q) or contains(text, qRaw) then
 				return true
 			end
 		end
@@ -1480,8 +1515,8 @@ __modules["model/Filter"] = function(__require)
 		return #filtered > 0, filtered
 	end
 	
-	-- Compat
 	Filter.sectionVisible = Filter.groupVisible
+	Filter._norm = norm -- for tests / debug
 	
 	return Filter
 end
@@ -2234,7 +2269,8 @@ __modules["window/Build"] = function(__require)
 			PlaceholderColor3 = config.colors.textMuted,
 			TextColor3 = config.colors.text,
 			TextSize = 14,
-			Font = config.font,
+			-- Code font has poor Cyrillic; Gotham accepts Russian input in TextBox
+			Font = Enum.Font.Gotham,
 			ClearTextOnFocus = false,
 			BorderSizePixel = 0,
 			TextXAlignment = Enum.TextXAlignment.Center,
@@ -2245,10 +2281,12 @@ __modules["window/Build"] = function(__require)
 		hub.searchBox = search
 	
 		if searchEnabled then
-			hub._maid:Connect(search:GetPropertyChangedSignal("Text"), function()
-				hub.searchQuery = search.Text
+			local function syncSearch()
+				hub.searchQuery = search.Text or ""
 				hub:_refreshPages()
-			end)
+			end
+			hub._maid:Connect(search:GetPropertyChangedSignal("Text"), syncSearch)
+			hub._maid:Connect(search.FocusLost, syncSearch)
 		end
 	
 		local closeRed = Color3.fromRGB(220, 55, 60)
