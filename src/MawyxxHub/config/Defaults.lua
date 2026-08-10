@@ -35,11 +35,13 @@ local Defaults = {
 	},
 	-- Hub window starts hidden; RightShift opens/closes (framework-level).
 	startHidden = true,
-	-- Equal WIDTH groups; HEIGHT grows with controls. N columns, page scrolls.
+	-- Equal WIDTH; col2 glued to trailing edge + endInset; gutter between columns.
 	group = {
 		columns = 2,
-		gap = 12,
-		padding = 12,
+		gap = 12, -- vertical between groups in a column
+		gutter = 18, -- horizontal air between left/right columns
+		endInset = 6, -- right column inset from the edge (cool breathe)
+		padding = 14,
 		headerHeight = 36,
 		corner = 4,
 	},

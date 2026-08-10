@@ -160,11 +160,13 @@ __modules["config/Defaults"] = function(__require)
 		},
 		-- Hub window starts hidden; RightShift opens/closes (framework-level).
 		startHidden = true,
-		-- Equal WIDTH groups; HEIGHT grows with controls. N columns, page scrolls.
+		-- Equal WIDTH; col2 glued to trailing edge + endInset; gutter between columns.
 		group = {
 			columns = 2,
-			gap = 12,
-			padding = 12,
+			gap = 12, -- vertical between groups in a column
+			gutter = 18, -- horizontal air between left/right columns
+			endInset = 6, -- right column inset from the edge (cool breathe)
+			padding = 14,
 			headerHeight = 36,
 			corner = 4,
 		},
@@ -1279,7 +1281,7 @@ __modules["navigation/Groups"] = function(__require)
 end
 
 __modules["navigation/Pages"] = function(__require)
-	-- Tab page: N equal-WIDTH columns; each group height = its controls; page scrolls.
+	-- Tab page: col1 left-aligned, col2 glued to trailing edge + inset (cool gutter).
 	
 	local CreateMod = __require("visual/Create")
 	local Groups = __require("navigation/Groups")
@@ -1288,6 +1290,22 @@ __modules["navigation/Pages"] = function(__require)
 	local Create = CreateMod.Create
 	
 	local Pages = {}
+	
+	local function makeColumn(parent, name)
+		local col = Create("Frame", {
+			Name = name,
+			Parent = parent,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			AutomaticSize = Enum.AutomaticSize.Y,
+		})
+		Create("UIListLayout", {
+			Parent = col,
+			Padding = UDim.new(0, 0), -- set by caller via attribute... use hub gap below
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		})
+		return col
+	end
 	
 	function Pages.render(hub)
 		hub._pageMaid:DoCleaning()
@@ -1308,6 +1326,8 @@ __modules["navigation/Pages"] = function(__require)
 		local gap = gcfg.gap or 12
 		local pad = gcfg.padding or 12
 		local columns = gcfg.columns or 2
+		local gutter = gcfg.gutter or (gap + 6)
+		local endInset = gcfg.endInset or 4
 	
 		for _, tab in ipairs(hub.tabs) do
 			local page = Create("Frame", {
@@ -1347,33 +1367,41 @@ __modules["navigation/Pages"] = function(__require)
 				BorderSizePixel = 0,
 				AutomaticSize = Enum.AutomaticSize.Y,
 			})
-			Create("UIListLayout", {
-				Parent = row,
-				FillDirection = Enum.FillDirection.Horizontal,
-				Padding = UDim.new(0, gap),
-				SortOrder = Enum.SortOrder.LayoutOrder,
-				HorizontalAlignment = Enum.HorizontalAlignment.Left,
-				VerticalAlignment = Enum.VerticalAlignment.Top,
-			})
 	
 			local cols = {}
-			for c = 1, columns do
-				local col = Create("Frame", {
-					Name = "Column" .. c,
-					Parent = row,
-					-- Equal width: (1/columns) of row minus shared gaps handled by parent padding
-					Size = UDim2.new(1 / columns, -math.ceil(gap * (columns - 1) / columns), 0, 0),
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					AutomaticSize = Enum.AutomaticSize.Y,
-					LayoutOrder = c,
-				})
+	
+			if columns == 2 then
+				-- Left sticks to start; right sticks to end (with endInset). Equal width + cool gutter.
+				local halfOffset = math.floor(gutter / 2)
+	
+				local left = makeColumn(row, "Column1")
+				left.Position = UDim2.new(0, 0, 0, 0)
+				left.Size = UDim2.new(0.5, -(halfOffset), 0, 0)
+				left:FindFirstChildOfClass("UIListLayout").Padding = UDim.new(0, gap)
+				cols[1] = left
+	
+				local right = makeColumn(row, "Column2")
+				right.AnchorPoint = Vector2.new(1, 0)
+				right.Position = UDim2.new(1, -endInset, 0, 0)
+				right.Size = UDim2.new(0.5, -(halfOffset + endInset), 0, 0)
+				right:FindFirstChildOfClass("UIListLayout").Padding = UDim.new(0, gap)
+				cols[2] = right
+			else
 				Create("UIListLayout", {
-					Parent = col,
-					Padding = UDim.new(0, gap),
+					Parent = row,
+					FillDirection = Enum.FillDirection.Horizontal,
+					Padding = UDim.new(0, gutter),
 					SortOrder = Enum.SortOrder.LayoutOrder,
+					HorizontalAlignment = Enum.HorizontalAlignment.Left,
+					VerticalAlignment = Enum.VerticalAlignment.Top,
 				})
-				cols[c] = col
+				for c = 1, columns do
+					local col = makeColumn(row, "Column" .. c)
+					col.Size = UDim2.new(1 / columns, -math.ceil(gutter * (columns - 1) / columns), 0, 0)
+					col.LayoutOrder = c
+					col:FindFirstChildOfClass("UIListLayout").Padding = UDim.new(0, gap)
+					cols[c] = col
+				end
 			end
 	
 			local groups = tab.groups or tab.sections or {}
