@@ -8,7 +8,7 @@ assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")
 local hub = MawyxxHub.new({
 	window = { title = "MawyxxHub Demo", width = 920, height = 600, sidebarWidth = 156 },
 	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
-	startHidden = true,
+	startHidden = false,
 	toggleKey = Enum.KeyCode.RightControl,
 	group = {
 		columns = 2,
