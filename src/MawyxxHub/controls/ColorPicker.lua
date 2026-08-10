@@ -1,5 +1,5 @@
 -- Color picker: click swatch → HSV square + hue strip → OK / Cancel.
--- MAWYXX_COLOR_HSV_V4
+-- MAWYXX_COLOR_HSV_V5
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 
@@ -287,7 +287,9 @@ function ColorPicker.build(hub, element)
 	end
 
 	local function mouseXY()
-		local m = input.GetMouseLocation()
+		-- AbsolutePosition is Gui-inset space; raw GetMouseLocation is not
+		local getter = input.GetMouseLocationGui or input.GetMouseLocation
+		local m = getter()
 		return m.X, m.Y
 	end
 

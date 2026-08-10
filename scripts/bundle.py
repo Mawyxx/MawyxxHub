@@ -110,6 +110,9 @@ def main() -> None:
     run_out = OUT.parent / "___RUN_HSV.lua"
     run_out.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
     print(f"Wrote {run_out} ({run_out.stat().st_size} bytes)")
+    run_v5 = OUT.parent / "___RUN_HSV_V5.lua"
+    run_v5.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
+    print(f"Wrote {run_v5}")
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes, {len(files)} modules, leftover={leftover})")
 
 

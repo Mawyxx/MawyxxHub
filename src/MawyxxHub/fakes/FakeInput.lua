@@ -36,6 +36,9 @@ function FakeInput.new()
 	function api.GetMouseLocation()
 		return mouse
 	end
+	function api.GetMouseLocationGui()
+		return mouse
+	end
 	function api.SetMouse(x, y)
 		mouse = Vector2.new(x, y)
 	end

@@ -1,6 +1,6 @@
 -- Inline demo body (appended by bundle into dist/___RUN_HSV.lua). No HttpGet.
 
-print("[MawyxxHub] BUILD=HSV_V4_SINGLEFILE")
+print("[MawyxxHub] BUILD=HSV_V5_SINGLEFILE")
 
 local MawyxxHub = __require("init")
 assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")
