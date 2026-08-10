@@ -2152,14 +2152,37 @@ __modules["window/Build"] = function(__require)
 		local prefix = brand.prefix or "Mawyxx"
 		local accent = brand.accent or "Hub"
 		local prefixWidth = textMetrics.Measure(prefix, config.font, 20)
+		local accentWidth = textMetrics.Measure(accent, config.font, 20)
 	
-		local brandLabel = TextLabel(sidebar, prefix, 20, config.colors.text, config.font)
-		brandLabel.Position = UDim2.new(0, 20, 0, 17)
-		brandLabel.Size = UDim2.new(0, prefixWidth + 4, 0, 32)
+		local brandHeader = Create("Frame", {
+			Name = "BrandHeader",
+			Parent = sidebar,
+			Size = UDim2.new(1, 0, 0, 62),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+		})
 	
-		local brandPurple = TextLabel(sidebar, accent, 20, config.colors.purple, config.font)
-		brandPurple.Position = UDim2.new(0, 20 + prefixWidth, 0, 17)
-		brandPurple.Size = UDim2.new(0, 60, 0, 32)
+		local brandRow = Create("Frame", {
+			Name = "BrandRow",
+			Parent = brandHeader,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(prefixWidth + accentWidth + 2, 32),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+		})
+	
+		local brandLabel = TextLabel(brandRow, prefix, 20, config.colors.text, config.font)
+		brandLabel.Position = UDim2.new(0, 0, 0, 0)
+		brandLabel.Size = UDim2.new(0, prefixWidth + 1, 1, 0)
+		brandLabel.TextXAlignment = Enum.TextXAlignment.Right
+		brandLabel.TextYAlignment = Enum.TextYAlignment.Center
+	
+		local brandPurple = TextLabel(brandRow, accent, 20, config.colors.purple, config.font)
+		brandPurple.Position = UDim2.new(0, prefixWidth + 1, 0, 0)
+		brandPurple.Size = UDim2.new(0, accentWidth + 1, 1, 0)
+		brandPurple.TextXAlignment = Enum.TextXAlignment.Left
+		brandPurple.TextYAlignment = Enum.TextYAlignment.Center
 	
 		local navContainer = Create("ScrollingFrame", {
 			Name = "Navigation",
