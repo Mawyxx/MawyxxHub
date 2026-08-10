@@ -110,7 +110,7 @@ def main() -> None:
     run_out = OUT.parent / "___RUN_HSV.lua"
     run_out.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
     print(f"Wrote {run_out} ({run_out.stat().st_size} bytes)")
-    for name in ("___RUN_HSV_V5.lua", "___RUN_UI_V6.lua", "___RUN_UI_V7.lua", "___RUN_UI_V8.lua"):
+    for name in ("___RUN_HSV_V5.lua", "___RUN_UI_V6.lua", "___RUN_UI_V7.lua", "___RUN_UI_V8.lua", "___RUN_UI_V9.lua"):
         alt = OUT.parent / name
         alt.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
         print(f"Wrote {alt}")

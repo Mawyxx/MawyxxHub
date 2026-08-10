@@ -1,11 +1,12 @@
--- Open/close: collapse ↔ expand from the exact center of the menu.
+-- Open/close: full-size layout stays stable; UIScale grows/shrinks linearly from menu center.
 
-local OPEN_INFO = TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-local CLOSE_INFO = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-local OPEN_MS = 0.26
+local OPEN_INFO = TweenInfo.new(0.22, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+local CLOSE_INFO = TweenInfo.new(0.18, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 local CLOSE_MS = 0.2
--- Near-zero size = one point at AnchorPoint (menu center)
-local POINT = UDim2.fromOffset(2, 2)
+local MIN_SCALE = 0.02
+
+local CreateMod = require(script.Parent.Parent.visual.Create)
+local Create = CreateMod.Create
 
 local Shortcuts = {}
 
@@ -20,19 +21,23 @@ function Shortcuts.setup(hub)
 	local h = hub.config.window.height
 	local FULL = UDim2.fromOffset(w, h)
 
-	-- Pivot = center of the GUI (collapse point)
+	-- Stable full size (no layout jump). Pivot = menu center.
 	hub.window.AnchorPoint = Vector2.new(0.5, 0.5)
 	hub.window.Position = UDim2.fromScale(0.5, 0.5)
+	hub.window.Size = FULL
 
-	-- Drop leftover UIScale from older builds so Size pivot is clean
-	local oldScale = hub.window:FindFirstChildOfClass("UIScale")
-	if oldScale then
-		oldScale:Destroy()
+	local scale = hub.window:FindFirstChildOfClass("UIScale")
+	if not scale then
+		scale = Create("UIScale", {
+			Parent = hub.window,
+			Scale = 1,
+		})
 	end
+	hub._windowScale = scale
 
 	local visible = not startHidden
 	hub.window.Visible = visible
-	hub.window.Size = visible and FULL or POINT
+	scale.Scale = visible and 1 or MIN_SCALE
 
 	local animToken = 0
 
@@ -58,47 +63,37 @@ function Shortcuts.setup(hub)
 		local token = animToken
 		visible = open
 
-		-- Keep pivot locked on menu center while animating
 		hub.window.AnchorPoint = Vector2.new(0.5, 0.5)
 		hub.window.Position = UDim2.fromScale(0.5, 0.5)
+		hub.window.Size = FULL
 
 		if open then
 			hub.window.Visible = true
-			hub.window.Size = POINT
+			scale.Scale = MIN_SCALE
+			-- Layout once at full size so content doesn't jump while scaling
+			runLayouts()
+			task.defer(runLayouts)
 
 			if hub.config.animations == false then
-				hub.window.Size = FULL
-				runLayouts()
-				task.defer(runLayouts)
+				scale.Scale = 1
 				return
 			end
 
-			hub:tween(hub.window, { Size = FULL }, OPEN_INFO)
-			task.delay(OPEN_MS * 0.45, function()
-				if token == animToken and not hub._destroyed then
-					runLayouts()
-				end
-			end)
-			task.delay(OPEN_MS, function()
-				if token == animToken and not hub._destroyed then
-					hub.window.Size = FULL
-					runLayouts()
-				end
-			end)
+			hub:tween(scale, { Scale = 1 }, OPEN_INFO)
 		else
 			if hub.config.animations == false then
-				hub.window.Size = POINT
+				scale.Scale = MIN_SCALE
 				hub.window.Visible = false
 				return
 			end
 
-			hub:tween(hub.window, { Size = POINT }, CLOSE_INFO)
+			hub:tween(scale, { Scale = MIN_SCALE }, CLOSE_INFO)
 			task.delay(CLOSE_MS, function()
 				if token ~= animToken or hub._destroyed then
 					return
 				end
 				if not visible then
-					hub.window.Size = POINT
+					scale.Scale = MIN_SCALE
 					hub.window.Visible = false
 				end
 			end)
