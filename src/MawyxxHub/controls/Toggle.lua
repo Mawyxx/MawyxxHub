@@ -29,17 +29,17 @@ function Toggle.build(hub, element)
 	label.Size = UDim2.new(0.65, 0, 1, 0)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 
+	local offColor = config.colors.control or config.colors.surface2
 	local toggleBtn = Create("TextButton", {
 		Parent = row,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
 		Size = UDim2.new(0, 50, 0, 22),
-		BackgroundColor3 = state and config.colors.purple or config.colors.surface2,
+		BackgroundColor3 = state and config.colors.purple or offColor,
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
 	})
-	-- Room for UIStroke so the pill is not clipped by the card edge
 	Create("UIPadding", {
 		Parent = row,
 		PaddingRight = UDim.new(0, 4),
@@ -61,7 +61,7 @@ function Toggle.build(hub, element)
 		state = newState and true or false
 		hub.deps.settings.Set(hub.settings, flag, state)
 		hub:tween(toggleBtn, {
-			BackgroundColor3 = state and config.colors.purple or config.colors.surface2,
+			BackgroundColor3 = state and config.colors.purple or offColor,
 		})
 		hub:tween(knob, {
 			Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),

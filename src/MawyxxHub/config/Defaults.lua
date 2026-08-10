@@ -10,14 +10,16 @@ local Defaults = {
 	colors = {
 		bg = Color3.fromRGB(10, 10, 10),
 		surface = Color3.fromRGB(18, 18, 18),
-		surface2 = Color3.fromRGB(24, 24, 24),
-		surfaceHover = Color3.fromRGB(32, 32, 34),
-		border = Color3.fromRGB(42, 42, 46),
-		borderSoft = Color3.fromRGB(34, 34, 38),
+		surface2 = Color3.fromRGB(28, 28, 30),
+		surfaceHover = Color3.fromRGB(40, 40, 44),
+		-- Off toggles + slider tracks (lighter so they read on dark cards)
+		control = Color3.fromRGB(52, 52, 58),
+		controlHover = Color3.fromRGB(64, 64, 72),
+		border = Color3.fromRGB(55, 55, 62),
+		borderSoft = Color3.fromRGB(44, 44, 50),
 		text = Color3.fromRGB(235, 235, 240),
 		textSoft = Color3.fromRGB(175, 175, 182),
 		textMuted = Color3.fromRGB(110, 110, 118),
-		-- Bright lavender accent (QuantHub-style) — sliders / toggles / brand
 		purple = Color3.fromRGB(157, 141, 255),
 		purpleHover = Color3.fromRGB(178, 165, 255),
 		purpleDark = Color3.fromRGB(115, 98, 210),

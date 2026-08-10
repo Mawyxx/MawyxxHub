@@ -141,14 +141,16 @@ __modules["config/Defaults"] = function(__require)
 		colors = {
 			bg = Color3.fromRGB(10, 10, 10),
 			surface = Color3.fromRGB(18, 18, 18),
-			surface2 = Color3.fromRGB(24, 24, 24),
-			surfaceHover = Color3.fromRGB(32, 32, 34),
-			border = Color3.fromRGB(42, 42, 46),
-			borderSoft = Color3.fromRGB(34, 34, 38),
+			surface2 = Color3.fromRGB(28, 28, 30),
+			surfaceHover = Color3.fromRGB(40, 40, 44),
+			-- Off toggles + slider tracks (lighter so they read on dark cards)
+			control = Color3.fromRGB(52, 52, 58),
+			controlHover = Color3.fromRGB(64, 64, 72),
+			border = Color3.fromRGB(55, 55, 62),
+			borderSoft = Color3.fromRGB(44, 44, 50),
 			text = Color3.fromRGB(235, 235, 240),
 			textSoft = Color3.fromRGB(175, 175, 182),
 			textMuted = Color3.fromRGB(110, 110, 118),
-			-- Bright lavender accent (QuantHub-style) — sliders / toggles / brand
 			purple = Color3.fromRGB(157, 141, 255),
 			purpleHover = Color3.fromRGB(178, 165, 255),
 			purpleDark = Color3.fromRGB(115, 98, 210),
@@ -988,12 +990,12 @@ __modules["controls/Slider"] = function(__require)
 			Parent = row,
 			Position = UDim2.new(0, 0, 0, 28),
 			Size = UDim2.new(1, 0, 0, 16),
-			BackgroundColor3 = config.colors.surface2,
+			BackgroundColor3 = config.colors.control or config.colors.surface2,
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
 		})
-		Stroke(track, config.colors.borderSoft, 1)
+		Stroke(track, config.colors.border, 1)
 	
 		local fill = Create("Frame", {
 			Parent = track,
@@ -1091,17 +1093,17 @@ __modules["controls/Toggle"] = function(__require)
 		label.Size = UDim2.new(0.65, 0, 1, 0)
 		label.TextXAlignment = Enum.TextXAlignment.Left
 	
+		local offColor = config.colors.control or config.colors.surface2
 		local toggleBtn = Create("TextButton", {
 			Parent = row,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, 0, 0.5, 0),
 			Size = UDim2.new(0, 50, 0, 22),
-			BackgroundColor3 = state and config.colors.purple or config.colors.surface2,
+			BackgroundColor3 = state and config.colors.purple or offColor,
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
 		})
-		-- Room for UIStroke so the pill is not clipped by the card edge
 		Create("UIPadding", {
 			Parent = row,
 			PaddingRight = UDim.new(0, 4),
@@ -1123,7 +1125,7 @@ __modules["controls/Toggle"] = function(__require)
 			state = newState and true or false
 			hub.deps.settings.Set(hub.settings, flag, state)
 			hub:tween(toggleBtn, {
-				BackgroundColor3 = state and config.colors.purple or config.colors.surface2,
+				BackgroundColor3 = state and config.colors.purple or offColor,
 			})
 			hub:tween(knob, {
 				Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),

@@ -39,12 +39,12 @@ function Slider.build(hub, element)
 		Parent = row,
 		Position = UDim2.new(0, 0, 0, 28),
 		Size = UDim2.new(1, 0, 0, 16),
-		BackgroundColor3 = config.colors.surface2,
+		BackgroundColor3 = config.colors.control or config.colors.surface2,
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
 	})
-	Stroke(track, config.colors.borderSoft, 1)
+	Stroke(track, config.colors.border, 1)
 
 	local fill = Create("Frame", {
 		Parent = track,
