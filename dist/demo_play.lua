@@ -3159,6 +3159,21 @@ local function updateTracer(frame, from, to, color)
 	frame.Rotation = math.deg(math.atan2(delta.Y, delta.X))
 end
 
+-- Always resolve a 2D point toward the target — even behind cam / off-screen
+local function worldToAlwaysPoint(cam, worldPos, viewport)
+	local screen = cam:WorldToViewportPoint(worldPos)
+	local x, y = screen.X, screen.Y
+	-- Behind camera: mirror through screen center so the line still points at them
+	if screen.Z < 0 then
+		x = viewport.X - x
+		y = viewport.Y - y
+	end
+	local margin = 2
+	x = math.clamp(x, margin, math.max(margin, viewport.X - margin))
+	y = math.clamp(y, margin, math.max(margin, viewport.Y - margin))
+	return Vector2.new(x, y)
+end
+
 local function applyWalkSpeed()
 	local char = LocalPlayer.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -3311,12 +3326,8 @@ local renderConn = RunService.RenderStepped:Connect(function()
 
 				if tracers then
 					local fromY = flag("play_tracer_bottom", true) and origin.Y or (origin.Y * 0.5)
-					local screen, onScreen = Camera:WorldToViewportPoint(root.Position)
-					if onScreen and screen.Z > 0 then
-						updateTracer(e.tracer, Vector2.new(origin.X / 2, fromY), Vector2.new(screen.X, screen.Y), color)
-					else
-						e.tracer.Visible = false
-					end
+					local to = worldToAlwaysPoint(Camera, root.Position, origin)
+					updateTracer(e.tracer, Vector2.new(origin.X / 2, fromY), to, color)
 				else
 					e.tracer.Visible = false
 				end
