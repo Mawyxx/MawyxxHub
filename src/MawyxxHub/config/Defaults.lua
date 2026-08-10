@@ -1,9 +1,10 @@
--- Hierarchy config: Tab (sidebar) → Group (square grid) → Controls.
+-- Hierarchy config: Tab (sidebar) → Group → Controls.
 
 local Defaults = {
 	window = {
-		width = 1180,
+		width = 1280,
 		height = 640,
+		sidebarWidth = 168,
 		title = "MawyxxHub",
 	},
 	colors = {
@@ -33,15 +34,13 @@ local Defaults = {
 		enabled = true,
 		placeholder = "Search",
 	},
-	-- Hub window starts hidden; RightShift opens/closes (framework-level).
 	startHidden = true,
-	-- Equal WIDTH; guaranteed air between columns (same outer pad L/R).
 	group = {
 		columns = 2,
-		gap = 14,
-		gutter = 24,
-		padding = 18,
-		innerPadding = 12, -- inside each group card (keeps toggles off the stroke)
+		gap = 7, -- vertical between groups (halved)
+		gutter = 12, -- horizontal between columns (halved)
+		padding = 14,
+		innerPadding = 12,
 		headerHeight = 36,
 		corner = 4,
 	},

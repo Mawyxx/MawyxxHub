@@ -123,12 +123,13 @@ __modules["adapters/RobloxTween"] = function(__require)
 end
 
 __modules["config/Defaults"] = function(__require)
-	-- Hierarchy config: Tab (sidebar) → Group (square grid) → Controls.
+	-- Hierarchy config: Tab (sidebar) → Group → Controls.
 	
 	local Defaults = {
 		window = {
-			width = 1180,
+			width = 1280,
 			height = 640,
+			sidebarWidth = 168,
 			title = "MawyxxHub",
 		},
 		colors = {
@@ -158,15 +159,13 @@ __modules["config/Defaults"] = function(__require)
 			enabled = true,
 			placeholder = "Search",
 		},
-		-- Hub window starts hidden; RightShift opens/closes (framework-level).
 		startHidden = true,
-		-- Equal WIDTH; guaranteed air between columns (same outer pad L/R).
 		group = {
 			columns = 2,
-			gap = 14,
-			gutter = 24,
-			padding = 18,
-			innerPadding = 12, -- inside each group card (keeps toggles off the stroke)
+			gap = 7, -- vertical between groups (halved)
+			gutter = 12, -- horizontal between columns (halved)
+			padding = 14,
+			innerPadding = 12,
 			headerHeight = 36,
 			corner = 4,
 		},
@@ -1312,11 +1311,11 @@ __modules["navigation/Pages"] = function(__require)
 	--- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
 	local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
 		local viewW = scroll.AbsoluteSize.X
-		if viewW <= 0 then
-			return
+		if viewW <= 1 then
+			return false
 		end
-		local g = math.max(gutter, 16)
-		local p = math.max(pad, 12)
+		local g = math.max(gutter, 8)
+		local p = math.max(pad, 8)
 		local scrollBar = 6
 		local usable = math.max(viewW - p * 2 - scrollBar, 80)
 		local colW = math.max(math.floor((usable - g) / 2), 40)
@@ -1328,6 +1327,7 @@ __modules["navigation/Pages"] = function(__require)
 		left.Position = UDim2.new(0, 0, 0, 0)
 		right.Size = UDim2.new(0, colW, 0, 0)
 		right.Position = UDim2.new(0, colW + g, 0, 0)
+		return true
 	end
 	
 	function Pages.render(hub)
@@ -1343,13 +1343,14 @@ __modules["navigation/Pages"] = function(__require)
 			end
 		end
 		hub.pages = {}
+		hub._layoutHooks = {}
 	
 		local query = hub.searchQuery or ""
 		local gcfg = hub.config.group or {}
-		local gap = gcfg.gap or 14
-		local pad = gcfg.padding or 18
+		local gap = gcfg.gap or 7
+		local pad = gcfg.padding or 14
 		local columns = math.max(1, gcfg.columns or 2)
-		local gutter = gcfg.gutter or 24
+		local gutter = gcfg.gutter or 12
 	
 		for _, tab in ipairs(hub.tabs) do
 			local page = Create("Frame", {
@@ -1437,8 +1438,13 @@ __modules["navigation/Pages"] = function(__require)
 				end
 				hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout)
 				hub._pageMaid:Connect(page:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+				if hub.window then
+					hub._pageMaid:Connect(hub.window:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+				end
+				table.insert(hub._layoutHooks, relayout)
 				task.defer(relayout)
 				task.delay(0.05, relayout)
+				task.delay(0.2, relayout)
 			else
 				Create("UIPadding", {
 					Parent = scroll,
@@ -1739,6 +1745,8 @@ __modules["window/Build"] = function(__require)
 		hub.screenGui = screenGui
 		hub._maid:Give(screenGui)
 	
+		local sideW = (config.window and config.window.sidebarWidth) or 168
+	
 		local window = Create("Frame", {
 			Name = "Window",
 			Parent = screenGui,
@@ -1756,7 +1764,7 @@ __modules["window/Build"] = function(__require)
 			Name = "Sidebar",
 			Parent = window,
 			Position = UDim2.new(0, 0, 0, 0),
-			Size = UDim2.new(0, 190, 1, 0),
+			Size = UDim2.new(0, sideW, 1, 0),
 			BackgroundColor3 = config.colors.bg,
 			BorderSizePixel = 0,
 		})
@@ -1775,11 +1783,11 @@ __modules["window/Build"] = function(__require)
 		local prefixWidth = textMetrics.Measure(prefix, config.font, 20)
 	
 		local brandLabel = TextLabel(sidebar, prefix, 20, config.colors.text, config.font)
-		brandLabel.Position = UDim2.new(0, 34, 0, 17)
+		brandLabel.Position = UDim2.new(0, 20, 0, 17)
 		brandLabel.Size = UDim2.new(0, prefixWidth + 4, 0, 32)
 	
 		local brandPurple = TextLabel(sidebar, accent, 20, config.colors.purple, config.font)
-		brandPurple.Position = UDim2.new(0, 34 + prefixWidth, 0, 17)
+		brandPurple.Position = UDim2.new(0, 20 + prefixWidth, 0, 17)
 		brandPurple.Size = UDim2.new(0, 60, 0, 32)
 	
 		local navContainer = Create("ScrollingFrame", {
@@ -1800,8 +1808,8 @@ __modules["window/Build"] = function(__require)
 		local topbar = Create("Frame", {
 			Name = "Topbar",
 			Parent = window,
-			Position = UDim2.new(0, 190, 0, 0),
-			Size = UDim2.new(1, -190, 0, 51),
+			Position = UDim2.new(0, sideW, 0, 0),
+			Size = UDim2.new(1, -sideW, 0, 51),
 			BackgroundColor3 = config.colors.bg,
 			BorderSizePixel = 0,
 		})
@@ -1869,8 +1877,8 @@ __modules["window/Build"] = function(__require)
 		local content = Create("Frame", {
 			Name = "Content",
 			Parent = window,
-			Position = UDim2.new(0, 190, 0, 51),
-			Size = UDim2.new(1, -190, 1, -77),
+			Position = UDim2.new(0, sideW, 0, 51),
+			Size = UDim2.new(1, -sideW, 1, -77),
 			BackgroundColor3 = config.colors.bg,
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
@@ -1891,8 +1899,8 @@ __modules["window/Build"] = function(__require)
 	
 		local footer = Create("Frame", {
 			Parent = window,
-			Position = UDim2.new(0, 190, 1, -26),
-			Size = UDim2.new(1, -190, 0, 26),
+			Position = UDim2.new(0, sideW, 1, -26),
+			Size = UDim2.new(1, -sideW, 0, 26),
 			BackgroundColor3 = config.colors.bg,
 			BorderSizePixel = 0,
 		})
@@ -1958,7 +1966,7 @@ __modules["window/Drag"] = function(__require)
 end
 
 __modules["window/Shortcuts"] = function(__require)
-	-- RightShift always toggles the hub window (framework-level). Starts hidden — first press opens.
+	-- RightShift toggles hub. Relayout after open (AbsoluteSize was 0 while hidden).
 	
 	local Shortcuts = {}
 	
@@ -1975,6 +1983,16 @@ __modules["window/Shortcuts"] = function(__require)
 			hub.window.Size = UDim2.new(0, hub.config.window.width, 0, 0)
 		end
 	
+		local function runLayouts()
+			local hooks = hub._layoutHooks
+			if not hooks then
+				return
+			end
+			for _, fn in ipairs(hooks) do
+				pcall(fn)
+			end
+		end
+	
 		local function setOpen(open)
 			visible = open
 			if open then
@@ -1982,6 +2000,9 @@ __modules["window/Shortcuts"] = function(__require)
 				hub:tween(hub.window, {
 					Size = UDim2.new(0, hub.config.window.width, 0, hub.config.window.height),
 				})
+				task.defer(runLayouts)
+				task.delay(0.05, runLayouts)
+				task.delay(0.15, runLayouts)
 			else
 				hub:tween(hub.window, {
 					Size = UDim2.new(0, hub.config.window.width, 0, 0),
@@ -1998,12 +2019,12 @@ __modules["window/Shortcuts"] = function(__require)
 		hub._isOpen = function()
 			return visible
 		end
+		hub._runLayouts = runLayouts
 	
-		hub._maid:Connect(input.InputBegan, function(inp, processed)
+		hub._maid:Connect(input.InputBegan, function(inp)
 			if hub._destroyed then
 				return
 			end
-			-- Ignore gameProcessed so RightShift always works in menus / chat focus quirks
 			if inp.KeyCode == Enum.KeyCode.RightShift then
 				setOpen(not visible)
 			end

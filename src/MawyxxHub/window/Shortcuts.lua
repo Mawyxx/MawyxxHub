@@ -1,4 +1,4 @@
--- RightShift always toggles the hub window (framework-level). Starts hidden — first press opens.
+-- RightShift toggles hub. Relayout after open (AbsoluteSize was 0 while hidden).
 
 local Shortcuts = {}
 
@@ -15,6 +15,16 @@ function Shortcuts.setup(hub)
 		hub.window.Size = UDim2.new(0, hub.config.window.width, 0, 0)
 	end
 
+	local function runLayouts()
+		local hooks = hub._layoutHooks
+		if not hooks then
+			return
+		end
+		for _, fn in ipairs(hooks) do
+			pcall(fn)
+		end
+	end
+
 	local function setOpen(open)
 		visible = open
 		if open then
@@ -22,6 +32,9 @@ function Shortcuts.setup(hub)
 			hub:tween(hub.window, {
 				Size = UDim2.new(0, hub.config.window.width, 0, hub.config.window.height),
 			})
+			task.defer(runLayouts)
+			task.delay(0.05, runLayouts)
+			task.delay(0.15, runLayouts)
 		else
 			hub:tween(hub.window, {
 				Size = UDim2.new(0, hub.config.window.width, 0, 0),
@@ -38,12 +51,12 @@ function Shortcuts.setup(hub)
 	hub._isOpen = function()
 		return visible
 	end
+	hub._runLayouts = runLayouts
 
-	hub._maid:Connect(input.InputBegan, function(inp, processed)
+	hub._maid:Connect(input.InputBegan, function(inp)
 		if hub._destroyed then
 			return
 		end
-		-- Ignore gameProcessed so RightShift always works in menus / chat focus quirks
 		if inp.KeyCode == Enum.KeyCode.RightShift then
 			setOpen(not visible)
 		end

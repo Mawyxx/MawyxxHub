@@ -19,11 +19,11 @@ end
 --- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
 local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
 	local viewW = scroll.AbsoluteSize.X
-	if viewW <= 0 then
-		return
+	if viewW <= 1 then
+		return false
 	end
-	local g = math.max(gutter, 16)
-	local p = math.max(pad, 12)
+	local g = math.max(gutter, 8)
+	local p = math.max(pad, 8)
 	local scrollBar = 6
 	local usable = math.max(viewW - p * 2 - scrollBar, 80)
 	local colW = math.max(math.floor((usable - g) / 2), 40)
@@ -35,6 +35,7 @@ local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
 	left.Position = UDim2.new(0, 0, 0, 0)
 	right.Size = UDim2.new(0, colW, 0, 0)
 	right.Position = UDim2.new(0, colW + g, 0, 0)
+	return true
 end
 
 function Pages.render(hub)
@@ -50,13 +51,14 @@ function Pages.render(hub)
 		end
 	end
 	hub.pages = {}
+	hub._layoutHooks = {}
 
 	local query = hub.searchQuery or ""
 	local gcfg = hub.config.group or {}
-	local gap = gcfg.gap or 14
-	local pad = gcfg.padding or 18
+	local gap = gcfg.gap or 7
+	local pad = gcfg.padding or 14
 	local columns = math.max(1, gcfg.columns or 2)
-	local gutter = gcfg.gutter or 24
+	local gutter = gcfg.gutter or 12
 
 	for _, tab in ipairs(hub.tabs) do
 		local page = Create("Frame", {
@@ -144,8 +146,13 @@ function Pages.render(hub)
 			end
 			hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout)
 			hub._pageMaid:Connect(page:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+			if hub.window then
+				hub._pageMaid:Connect(hub.window:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+			end
+			table.insert(hub._layoutHooks, relayout)
 			task.defer(relayout)
 			task.delay(0.05, relayout)
+			task.delay(0.2, relayout)
 		else
 			Create("UIPadding", {
 				Parent = scroll,

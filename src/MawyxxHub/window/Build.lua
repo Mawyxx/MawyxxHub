@@ -25,6 +25,8 @@ function Build.window(hub)
 	hub.screenGui = screenGui
 	hub._maid:Give(screenGui)
 
+	local sideW = (config.window and config.window.sidebarWidth) or 168
+
 	local window = Create("Frame", {
 		Name = "Window",
 		Parent = screenGui,
@@ -42,7 +44,7 @@ function Build.window(hub)
 		Name = "Sidebar",
 		Parent = window,
 		Position = UDim2.new(0, 0, 0, 0),
-		Size = UDim2.new(0, 190, 1, 0),
+		Size = UDim2.new(0, sideW, 1, 0),
 		BackgroundColor3 = config.colors.bg,
 		BorderSizePixel = 0,
 	})
@@ -61,11 +63,11 @@ function Build.window(hub)
 	local prefixWidth = textMetrics.Measure(prefix, config.font, 20)
 
 	local brandLabel = TextLabel(sidebar, prefix, 20, config.colors.text, config.font)
-	brandLabel.Position = UDim2.new(0, 34, 0, 17)
+	brandLabel.Position = UDim2.new(0, 20, 0, 17)
 	brandLabel.Size = UDim2.new(0, prefixWidth + 4, 0, 32)
 
 	local brandPurple = TextLabel(sidebar, accent, 20, config.colors.purple, config.font)
-	brandPurple.Position = UDim2.new(0, 34 + prefixWidth, 0, 17)
+	brandPurple.Position = UDim2.new(0, 20 + prefixWidth, 0, 17)
 	brandPurple.Size = UDim2.new(0, 60, 0, 32)
 
 	local navContainer = Create("ScrollingFrame", {
@@ -86,8 +88,8 @@ function Build.window(hub)
 	local topbar = Create("Frame", {
 		Name = "Topbar",
 		Parent = window,
-		Position = UDim2.new(0, 190, 0, 0),
-		Size = UDim2.new(1, -190, 0, 51),
+		Position = UDim2.new(0, sideW, 0, 0),
+		Size = UDim2.new(1, -sideW, 0, 51),
 		BackgroundColor3 = config.colors.bg,
 		BorderSizePixel = 0,
 	})
@@ -155,8 +157,8 @@ function Build.window(hub)
 	local content = Create("Frame", {
 		Name = "Content",
 		Parent = window,
-		Position = UDim2.new(0, 190, 0, 51),
-		Size = UDim2.new(1, -190, 1, -77),
+		Position = UDim2.new(0, sideW, 0, 51),
+		Size = UDim2.new(1, -sideW, 1, -77),
 		BackgroundColor3 = config.colors.bg,
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
@@ -177,8 +179,8 @@ function Build.window(hub)
 
 	local footer = Create("Frame", {
 		Parent = window,
-		Position = UDim2.new(0, 190, 1, -26),
-		Size = UDim2.new(1, -190, 0, 26),
+		Position = UDim2.new(0, sideW, 1, -26),
+		Size = UDim2.new(1, -sideW, 0, 26),
 		BackgroundColor3 = config.colors.bg,
 		BorderSizePixel = 0,
 	})
