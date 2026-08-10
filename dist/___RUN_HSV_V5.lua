@@ -1839,7 +1839,7 @@ __modules["navigation/Sections"] = function(__require)
 end
 
 __modules["navigation/Sidebar"] = function(__require)
-	-- Sidebar: text-only tabs (no icons / emoji).
+	-- Sidebar: text-only tabs (no icons / emoji), names always centered.
 	
 	local CreateMod = __require("visual/Create")
 	
@@ -1880,8 +1880,10 @@ __modules["navigation/Sidebar"] = function(__require)
 			})
 	
 			local label = TextLabel(btn, tab.name, 16, hub.config.colors.textSoft, hub.config.font)
-			label.Position = UDim2.new(0, 16, 0, 0)
-			label.Size = UDim2.new(1, -28, 1, 0)
+			label.Position = UDim2.new(0, 0, 0, 0)
+			label.Size = UDim2.new(1, 0, 1, 0)
+			label.TextXAlignment = Enum.TextXAlignment.Center
+			label.TextYAlignment = Enum.TextYAlignment.Center
 	
 			maid:Connect(btn.MouseEnter, function()
 				if tab ~= hub.activeTab then
@@ -2065,6 +2067,7 @@ __modules["window/Build"] = function(__require)
 	
 	local Create = CreateMod.Create
 	local Stroke = CreateMod.Stroke
+	local Corner = CreateMod.Corner
 	local TextLabel = CreateMod.TextLabel
 	
 	local Build = {}
@@ -2169,7 +2172,7 @@ __modules["window/Build"] = function(__require)
 		local search = Create("TextBox", {
 			Parent = topbar,
 			Position = UDim2.new(0, 10, 0, 8),
-			Size = UDim2.new(1, -80, 0, 34),
+			Size = UDim2.new(1, -56, 0, 34),
 			BackgroundColor3 = config.colors.surface,
 			Text = "",
 			PlaceholderText = searchEnabled and placeholder or "Search disabled",
@@ -2196,23 +2199,44 @@ __modules["window/Build"] = function(__require)
 			end)
 		end
 	
-		local topControl = Create("TextButton", {
+		local closeRed = Color3.fromRGB(220, 55, 60)
+		local closeRedSoft = Color3.fromRGB(48, 14, 16)
+		local closeRedHover = Color3.fromRGB(255, 72, 78)
+		local closeBtn = Create("TextButton", {
+			Name = "Close",
 			Parent = topbar,
-			Position = UDim2.new(1, -52, 0, 0),
-			Size = UDim2.new(0, 52, 1, 0),
-			BackgroundTransparency = 1,
-			Text = "↗",
-			TextColor3 = config.colors.textMuted,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -10, 0.5, 0),
+			Size = UDim2.fromOffset(30, 30),
+			BackgroundColor3 = closeRedSoft,
+			BorderSizePixel = 0,
+			Text = "×",
+			TextColor3 = closeRed,
 			TextSize = 22,
 			Font = config.font,
-			BorderSizePixel = 0,
 			AutoButtonColor = false,
+			ZIndex = 5,
 		})
-		hub._maid:Connect(topControl.MouseEnter, function()
-			hub:tween(topControl, { TextColor3 = config.colors.purple })
+		Corner(closeBtn, 6)
+		Stroke(closeBtn, Color3.fromRGB(160, 40, 48), 1)
+		hub.closeButton = closeBtn
+	
+		hub._maid:Connect(closeBtn.MouseEnter, function()
+			hub:tween(closeBtn, {
+				BackgroundColor3 = Color3.fromRGB(70, 18, 22),
+				TextColor3 = closeRedHover,
+			})
 		end)
-		hub._maid:Connect(topControl.MouseLeave, function()
-			hub:tween(topControl, { TextColor3 = config.colors.textMuted })
+		hub._maid:Connect(closeBtn.MouseLeave, function()
+			hub:tween(closeBtn, {
+				BackgroundColor3 = closeRedSoft,
+				TextColor3 = closeRed,
+			})
+		end)
+		hub._maid:Connect(closeBtn.MouseButton1Click, function()
+			if hub._setOpen then
+				hub._setOpen(false)
+			end
 		end)
 	
 		local content = Create("Frame", {
@@ -2383,7 +2407,7 @@ end
 -- ===== INLINE DEMO =====
 -- Inline demo body (appended by bundle into dist/___RUN_HSV.lua). No HttpGet.
 
-print("[MawyxxHub] BUILD=HSV_V5_SINGLEFILE")
+print("[MawyxxHub] BUILD=UI_V6_SINGLEFILE")
 
 local MawyxxHub = __require("init")
 assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")

@@ -1,4 +1,4 @@
--- Sidebar: text-only tabs (no icons / emoji).
+-- Sidebar: text-only tabs (no icons / emoji), names always centered.
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 
@@ -39,8 +39,10 @@ function Sidebar.render(hub)
 		})
 
 		local label = TextLabel(btn, tab.name, 16, hub.config.colors.textSoft, hub.config.font)
-		label.Position = UDim2.new(0, 16, 0, 0)
-		label.Size = UDim2.new(1, -28, 1, 0)
+		label.Position = UDim2.new(0, 0, 0, 0)
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.TextXAlignment = Enum.TextXAlignment.Center
+		label.TextYAlignment = Enum.TextYAlignment.Center
 
 		maid:Connect(btn.MouseEnter, function()
 			if tab ~= hub.activeTab then
