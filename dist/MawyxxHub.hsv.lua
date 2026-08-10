@@ -2421,7 +2421,7 @@ __modules["window/Drag"] = function(__require)
 end
 
 __modules["window/Shortcuts"] = function(__require)
-	-- Open: thin center strip expands up+down. Close: collapses into center strip. Linear.
+	-- RightControl toggles hub. Vertical strip open/close from center.
 	
 	local OPEN_INFO = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	local CLOSE_INFO = TweenInfo.new(0.08, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
@@ -2552,7 +2552,7 @@ __modules["window/Shortcuts"] = function(__require)
 			if hub._destroyed then
 				return
 			end
-			if inp.KeyCode == Enum.KeyCode.RightShift then
+			if inp.KeyCode == Enum.KeyCode.RightControl then
 				setOpen(not visible)
 			end
 		end)

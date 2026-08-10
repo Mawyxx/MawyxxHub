@@ -13,12 +13,12 @@ Repo: https://github.com/Mawyxx/MawyxxHub
 **Full demo** (hub + sample tabs, one file — use this URL to avoid HttpGet cache):
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/___RUN_UI_V17.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/___RUN_UI_V18.lua"))()
 ```
 
 - Starts **hidden**
-- **RightShift** — open / close
-- Red **×** — close (same as RightShift)
+- **RightControl** — open / close
+- Red **×** — close (same as RightControl)
 - Drag window from the top bar
 - Search filters controls on the active page
 
@@ -142,7 +142,7 @@ MawyxxHub.new({
 		enabled = true,
 		placeholder = "Search",
 	},
-	startHidden = true,       -- open with RightShift
+	startHidden = true,       -- open with RightControl
 	animations = true,        -- open/close strip animation
 	settingsTable = "MawyxxHubSettings", -- _G key for flags
 	group = {
@@ -163,7 +163,7 @@ MawyxxHub.new({
 
 | Feature | Behavior |
 |---------|----------|
-| Open / close | Vertical strip from center (linear, fast). RightShift or ×. |
+| Open / close | Vertical strip from center (linear, fast). RightControl or ×. |
 | Search | Live filter by group/control label & flag. Cleared + unfocused on close. |
 | Color picker | Overlay HSV picker (square + hue bar), OK / Cancel. |
 | Groups | Equal width; height from content; 2 columns. |
@@ -176,7 +176,7 @@ MawyxxHub.new({
 ```
 src/MawyxxHub/          source modules
 dist/MawyxxHub.lua      bundled framework for HttpGet
-dist/___RUN_UI_V17.lua  bundled framework + English demo
+dist/___RUN_UI_V18.lua  bundled framework + English demo
 examples/               Studio / inline demo sources
 scripts/bundle.py       rebuild dist/*
 ```
