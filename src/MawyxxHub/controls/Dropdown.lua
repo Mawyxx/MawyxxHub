@@ -42,7 +42,7 @@ function Dropdown.build(hub, element)
 		AutoButtonColor = false,
 		ZIndex = 21,
 	})
-	Stroke(btn, config.colors.border, 1)
+	Stroke(btn, config.colors.borderSoft, 1, 0.45)
 
 	local currentText = TextLabel(btn, tostring(selected), 14, config.colors.text, config.font)
 	currentText.Position = UDim2.new(0, 9, 0, 0)
