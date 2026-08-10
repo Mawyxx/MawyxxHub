@@ -1,4 +1,4 @@
--- Full QuantHub palette (from reference UI).
+-- Exact QuantHub palette (user-specified hex).
 
 local Defaults = {
 	window = {
@@ -8,24 +8,26 @@ local Defaults = {
 		title = "MawyxxHub",
 	},
 	colors = {
-		-- Chrome
-		bg = Color3.fromRGB(11, 11, 11), -- #0B0B0B window / sidebar
-		surface = Color3.fromRGB(18, 18, 18), -- #121212 group cards
-		surface2 = Color3.fromRGB(22, 22, 22),
+		-- #111111 — window / sidebar / page chrome
+		bg = Color3.fromRGB(17, 17, 17),
+		-- Group cards sit slightly above chrome (same family as #111)
+		surface = Color3.fromRGB(17, 17, 17),
+		surface2 = Color3.fromRGB(17, 17, 17),
 		surfaceHover = Color3.fromRGB(28, 28, 28),
-		-- Interactive fields (slider track, off toggle, dropdown, search, buttons)
-		control = Color3.fromRGB(30, 30, 30), -- #1E1E1E
-		controlHover = Color3.fromRGB(40, 40, 40),
-		border = Color3.fromRGB(32, 32, 32),
-		borderSoft = Color3.fromRGB(26, 26, 26),
-		-- Text
-		text = Color3.fromRGB(230, 230, 230),
+		-- #000000 — search, dropdown, buttons, slider tracks, off toggles
+		control = Color3.fromRGB(0, 0, 0),
+		controlHover = Color3.fromRGB(22, 22, 22),
+		border = Color3.fromRGB(40, 40, 40),
+		borderSoft = Color3.fromRGB(28, 28, 28),
+		-- #FFFFFF — primary labels
+		text = Color3.fromRGB(255, 255, 255),
+		-- #A0A0A0 — inactive tabs, slider values, secondary labels
 		textSoft = Color3.fromRGB(160, 160, 160),
-		textMuted = Color3.fromRGB(100, 100, 100),
-		-- Accent (slider fill / on-toggle / active tab / brand)
-		purple = Color3.fromRGB(138, 126, 253), -- #8A7EFD
-		purpleHover = Color3.fromRGB(158, 148, 255),
-		purpleDark = Color3.fromRGB(100, 90, 200),
+		textMuted = Color3.fromRGB(160, 160, 160),
+		-- #7B52FF — accent (fills, on-toggles, brand, active tab)
+		purple = Color3.fromRGB(123, 82, 255),
+		purpleHover = Color3.fromRGB(143, 110, 255),
+		purpleDark = Color3.fromRGB(95, 60, 210),
 		white = Color3.fromRGB(255, 255, 255),
 	},
 	font = Enum.Font.Code,
