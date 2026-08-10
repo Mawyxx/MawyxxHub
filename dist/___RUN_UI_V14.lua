@@ -2565,14 +2565,14 @@ end
 -- ===== INLINE DEMO =====
 -- Inline demo body (appended by bundle into dist/___RUN_HSV.lua). No HttpGet.
 
-print("[MawyxxHub] BUILD=UI_V16_SINGLEFILE")
+print("[MawyxxHub] BUILD=UI_V17_SINGLEFILE")
 
 local MawyxxHub = __require("init")
 assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")
 
 local hub = MawyxxHub.new({
 	window = { title = "MawyxxHub Demo", width = 920, height = 600, sidebarWidth = 156 },
-	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / HSV V4" },
+	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
 	startHidden = true,
 	group = {
 		columns = 2,
@@ -2592,10 +2592,10 @@ local aim = hub:addGroup(combat, "Aim")
 local guns = hub:addGroup(combat, "Weapons")
 local rage = hub:addGroup(combat, "Rage")
 
-hub:addToggle(aim, "Включено", "demo_aim_on", false)
+hub:addToggle(aim, "Enabled", "demo_aim_on", false)
 hub:addSlider(aim, "FOV", "demo_aim_fov", 10, 180, 1, 75)
-hub:addDropdown(aim, "Цель", "demo_aim_target", { "Closest", "Lowest HP", "Crosshair" }, "Closest")
-hub:addColorPicker(aim, "Цвет FOV", "demo_aim_color", Color3.fromRGB(117, 72, 255))
+hub:addDropdown(aim, "Target", "demo_aim_target", { "Closest", "Lowest HP", "Crosshair" }, "Closest")
+hub:addColorPicker(aim, "FOV color", "demo_aim_color", Color3.fromRGB(117, 72, 255))
 
 hub:addToggle(guns, "No recoil", "demo_norecoil", true)
 hub:addSlider(guns, "Spread", "demo_spread", 0, 100, 1, 20)

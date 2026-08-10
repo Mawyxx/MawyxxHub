@@ -5,10 +5,10 @@ Roblox GUI framework: **Tab → Group → Controls**. Equal-width groups, height
 ## Run demo (GitHub → executor)
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/___RUN_UI_V17.lua"))()
 ```
 
-Loads `dist/MawyxxHub.lua` from this repo. **RightShift** opens/closes the menu (starts hidden).
+**RightShift** opens/closes the menu (starts hidden).
 
 ## Framework-only
 
@@ -20,8 +20,9 @@ local MawyxxHub = loadstring(game:HttpGet(
 local hub = MawyxxHub.new()
 local tab = hub:addTab("Combat")
 local g = hub:addGroup(tab, "Aim")
-hub:addToggle(g, "Enabled", "aim_on", false)
--- RightShift opens GUI
+hub:addToggle(g, "Enabled", "aim_on", false, function(on)
+  -- your logic
+end)
 ```
 
 ## Rebuild bundle after source changes
