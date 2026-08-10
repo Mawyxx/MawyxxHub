@@ -1,4 +1,4 @@
--- QuantHub-like contrast: near-black chrome, lifted panels, bright lavender accent.
+-- Full QuantHub palette (from reference UI).
 
 local Defaults = {
 	window = {
@@ -8,21 +8,24 @@ local Defaults = {
 		title = "MawyxxHub",
 	},
 	colors = {
-		bg = Color3.fromRGB(10, 10, 10),
-		surface = Color3.fromRGB(18, 18, 18),
-		surface2 = Color3.fromRGB(26, 26, 28),
-		surfaceHover = Color3.fromRGB(34, 34, 38),
-		-- Subtle lift over cards (not bright)
-		control = Color3.fromRGB(38, 38, 42),
-		controlHover = Color3.fromRGB(48, 48, 54),
-		border = Color3.fromRGB(48, 48, 54),
-		borderSoft = Color3.fromRGB(36, 36, 40),
-		text = Color3.fromRGB(235, 235, 240),
-		textSoft = Color3.fromRGB(175, 175, 182),
-		textMuted = Color3.fromRGB(110, 110, 118),
-		purple = Color3.fromRGB(157, 141, 255),
-		purpleHover = Color3.fromRGB(178, 165, 255),
-		purpleDark = Color3.fromRGB(115, 98, 210),
+		-- Chrome
+		bg = Color3.fromRGB(11, 11, 11), -- #0B0B0B window / sidebar
+		surface = Color3.fromRGB(18, 18, 18), -- #121212 group cards
+		surface2 = Color3.fromRGB(22, 22, 22),
+		surfaceHover = Color3.fromRGB(28, 28, 28),
+		-- Interactive fields (slider track, off toggle, dropdown, search, buttons)
+		control = Color3.fromRGB(30, 30, 30), -- #1E1E1E
+		controlHover = Color3.fromRGB(40, 40, 40),
+		border = Color3.fromRGB(32, 32, 32),
+		borderSoft = Color3.fromRGB(26, 26, 26),
+		-- Text
+		text = Color3.fromRGB(230, 230, 230),
+		textSoft = Color3.fromRGB(160, 160, 160),
+		textMuted = Color3.fromRGB(100, 100, 100),
+		-- Accent (slider fill / on-toggle / active tab / brand)
+		purple = Color3.fromRGB(138, 126, 253), -- #8A7EFD
+		purpleHover = Color3.fromRGB(158, 148, 255),
+		purpleDark = Color3.fromRGB(100, 90, 200),
 		white = Color3.fromRGB(255, 255, 255),
 	},
 	font = Enum.Font.Code,

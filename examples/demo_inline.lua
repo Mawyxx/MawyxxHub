@@ -80,9 +80,9 @@ hub:addToggle(ui, "Animations", "demo_ui_anim", true)
 hub:addDropdown(ui, "Accent", "demo_accent", { "Purple", "Blue", "Red" }, "Purple", function(name)
 	local accents = {
 		Purple = {
-			purple = Color3.fromRGB(157, 141, 255),
-			purpleHover = Color3.fromRGB(178, 165, 255),
-			purpleDark = Color3.fromRGB(115, 98, 210),
+			purple = Color3.fromRGB(138, 126, 253),
+			purpleHover = Color3.fromRGB(158, 148, 255),
+			purpleDark = Color3.fromRGB(100, 90, 200),
 		},
 		Blue = {
 			purple = Color3.fromRGB(70, 140, 255),
