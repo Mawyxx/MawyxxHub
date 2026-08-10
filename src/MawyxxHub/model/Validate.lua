@@ -44,6 +44,10 @@ function Validate.flagsDistinct(flag, colorFlag)
 	Errors.expect(flag ~= colorFlag, "Validate.Flag", "flag and colorFlag must differ")
 end
 
+function Validate.label(label)
+	Errors.expect(type(label) == "string" and label ~= "", "Validate.Label", "label must be a non-empty string")
+end
+
 function Validate.expectTable(value, ruleId, message)
 	Errors.expect(type(value) == "table", ruleId, message)
 end
