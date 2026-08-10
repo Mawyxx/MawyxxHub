@@ -1,1 +1,1 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua?v=7"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua?v=8"))()
