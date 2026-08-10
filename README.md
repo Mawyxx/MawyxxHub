@@ -113,7 +113,19 @@ hub:Destroy()                    -- tear down ScreenGui + connections
 - Stateful controls (`toggle` / `slider` / `dropdown` / `color`) are addressed by a unique **`flag`** string on the whole hub.
 - `hub:get("aim_on")` / `hub:set("aim_on", true)` work from anywhere — no tab/group path needed.
 - **`flag` must be unique** across the entire hub (two toggles cannot share `"speed"`).
+- **Labels may repeat** — e.g. two groups both can show `"Enabled"`. Same text is fine; different flags are required (`"aim_on"` vs `"esp_on"`).
 - **Buttons** have no flag: they only run `callback` on click. For on/off state, use a toggle.
+
+```lua
+-- Same label, different flags — correct:
+local aim = hub:addGroup(combat, "Aim")
+local esp = hub:addGroup(visuals, "ESP")
+hub:addToggle(aim, "Enabled", "aim_on", false)
+hub:addToggle(esp, "Enabled", "esp_on", true)
+
+hub:get("aim_on")  -- Aim toggle
+hub:get("esp_on")  -- ESP toggle
+```
 
 ```lua
 -- Build (structure matters here):
