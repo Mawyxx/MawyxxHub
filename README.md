@@ -106,6 +106,30 @@ hub:set("aim_on", true)          -- write + update UI
 hub:Destroy()                    -- tear down ScreenGui + connections
 ```
 
+**How controls are identified (important for script authors)**
+
+- **Tab** and **Group** are only layout. You pass them when *creating* UI so the control appears in the right place.
+- After that, the program does **not** address controls as `Tab → Group → Label`.
+- Stateful controls (`toggle` / `slider` / `dropdown` / `color`) are addressed by a unique **`flag`** string on the whole hub.
+- `hub:get("aim_on")` / `hub:set("aim_on", true)` work from anywhere — no tab/group path needed.
+- **`flag` must be unique** across the entire hub (two toggles cannot share `"speed"`).
+- **Buttons** have no flag: they only run `callback` on click. For on/off state, use a toggle.
+
+```lua
+-- Build (structure matters here):
+local combat = hub:addTab("Combat")
+local aim = hub:addGroup(combat, "Aim")
+hub:addToggle(aim, "Enabled", "aim_on", false, function(on)
+	-- game logic; `on` is already saved under flag "aim_on"
+end)
+
+-- Later / elsewhere (structure does NOT matter):
+if hub:get("aim_on") then
+	-- ...
+end
+hub:set("aim_fov", 90) -- UI updates if that slider exists
+```
+
 **Pattern for your script logic**
 
 ```lua
