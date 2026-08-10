@@ -118,6 +118,7 @@ def main() -> None:
         "___RUN_UI_V9.lua",
         "___RUN_UI_V10.lua",
         "___RUN_UI_V11.lua",
+        "___RUN_UI_V12.lua",
     ):
         alt = OUT.parent / name
         alt.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
