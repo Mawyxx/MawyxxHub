@@ -1,13 +1,14 @@
 --[[
-	MawyxxHub Fake Demo — loads framework directly from GitHub (no Rojo / ReplicatedStorage).
+	MawyxxHub Fake Demo — loads framework from GitHub.
 
-	Executor / LocalScript:
-	  loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua"))()
+	Executor:
+	  loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua?v=4"))()
 
-	Or paste this whole file. RightShift opens/closes the GUI (framework-level).
+	RightShift opens/closes GUI.
 ]]
 
-local RAW = "https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua"
+local BUNDLE_VER = "4"
+local RAW = ("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua?v=%s"):format(BUNDLE_VER)
 
 local function httpGet(url)
 	local ok, result = pcall(function()
@@ -16,12 +17,16 @@ local function httpGet(url)
 	if ok and type(result) == "string" and #result > 0 then
 		return result
 	end
-	-- Studio fallback (HttpService must allow HTTP)
 	local HttpService = game:GetService("HttpService")
 	return HttpService:GetAsync(url)
 end
 
+print("[MawyxxHub] fetching bundle", BUNDLE_VER)
 local source = httpGet(RAW)
+if not string.find(source, "layoutTwoColumns", 1, true) then
+	warn("[MawyxxHub] stale/cached bundle — no layoutTwoColumns. Try ?v= bump or reinject.")
+end
+
 local chunk, err = loadstring(source)
 if not chunk then
 	error("[MawyxxHub] failed to load bundle: " .. tostring(err))
@@ -35,8 +40,13 @@ end
 local hub = MawyxxHub.new({
 	window = { title = "MawyxxHub Demo" },
 	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
-	startHidden = true, -- RightShift opens
-	group = { columns = 2, gap = 12, padding = 12 },
+	startHidden = true,
+	group = {
+		columns = 2,
+		gap = 14,
+		gutter = 24,
+		padding = 18,
+	},
 })
 
 local combat = hub:addTab("Combat")
@@ -107,4 +117,4 @@ hub:addButton(danger, "Destroy hub", function()
 	hub:Destroy()
 end)
 
-print("[MawyxxHub] Loaded from GitHub. Press RightShift to open GUI.")
+print("[MawyxxHub] OK bundle", BUNDLE_VER, "— RightShift to open. gutter=24")

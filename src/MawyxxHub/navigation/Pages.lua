@@ -1,4 +1,4 @@
--- Tab page: equal-width columns with a guaranteed middle gutter (no squeeze).
+-- Tab page: equal-width columns; gutter from AbsoluteSize (never collapses).
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 local Groups = require(script.Parent.Groups)
@@ -14,6 +14,19 @@ local function addColumnList(col, gap)
 		Padding = UDim.new(0, gap),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	})
+end
+
+local function layoutTwoColumns(row, left, right, gutter)
+	local w = row.AbsoluteSize.X
+	if w <= 0 then
+		return
+	end
+	local g = math.max(gutter, 12)
+	local colW = math.max(math.floor((w - g) / 2), 1)
+	left.Size = UDim2.new(0, colW, 0, 0)
+	left.Position = UDim2.new(0, 0, 0, 0)
+	right.Size = UDim2.new(0, colW, 0, 0)
+	right.Position = UDim2.new(0, colW + g, 0, 0)
 end
 
 function Pages.render(hub)
@@ -35,7 +48,7 @@ function Pages.render(hub)
 	local gap = gcfg.gap or 14
 	local pad = gcfg.padding or 18
 	local columns = math.max(1, gcfg.columns or 2)
-	local gutter = gcfg.gutter or 20
+	local gutter = gcfg.gutter or 24
 
 	for _, tab in ipairs(hub.tabs) do
 		local page = Create("Frame", {
@@ -59,7 +72,6 @@ function Pages.render(hub)
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 		})
-		-- Same outer air on left and right of the content area.
 		Create("UIPadding", {
 			Parent = scroll,
 			PaddingLeft = UDim.new(0, pad),
@@ -91,15 +103,9 @@ function Pages.render(hub)
 			addColumnList(col, gap)
 			cols[1] = col
 		elseif columns == 2 then
-			-- left [====] gutter [====] right
-			-- Positions are explicit so UIListLayout cannot collapse the gutter.
-			local half = math.floor(gutter / 2)
-
 			local left = Create("Frame", {
 				Name = "Column1",
 				Parent = row,
-				Position = UDim2.new(0, 0, 0, 0),
-				Size = UDim2.new(0.5, -half, 0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				AutomaticSize = Enum.AutomaticSize.Y,
@@ -110,14 +116,19 @@ function Pages.render(hub)
 			local right = Create("Frame", {
 				Name = "Column2",
 				Parent = row,
-				Position = UDim2.new(0.5, half, 0, 0),
-				Size = UDim2.new(0.5, -half, 0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				AutomaticSize = Enum.AutomaticSize.Y,
 			})
 			addColumnList(right, gap)
 			cols[2] = right
+
+			local function relayout()
+				layoutTwoColumns(row, left, right, gutter)
+			end
+			hub._pageMaid:Connect(row:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+			task.defer(relayout)
+			task.delay(0, relayout)
 		else
 			local shrink = math.ceil(gutter * (columns - 1) / columns)
 			Create("UIListLayout", {
