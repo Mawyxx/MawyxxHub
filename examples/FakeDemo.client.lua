@@ -1,5 +1,5 @@
 --[[
-	MawyxxHub demo — loads latest framework from GitHub.
+	MawyxxHub demo — loads framework from GitHub.
 
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua"))()
 ]]
@@ -14,10 +14,11 @@ local function httpGet(url)
 	return game:GetService("HttpService"):GetAsync(url)
 end
 
--- timestamp query only avoids CDN/executor cache of dist (not a version pin)
-local MawyxxHub = loadstring(httpGet(
-	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua?" .. tostring(os.clock())
-))()
+-- Fresh filename so executors don't keep the old cycle-color bundle
+local source = httpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.bundle.lua")
+assert(string.find(source, "MAWYXX_COLOR_PALETTE_V2", 1, true), "[MawyxxHub] bad/old bundle — no color palette")
+
+local MawyxxHub = loadstring(source)()
 
 local hub = MawyxxHub.new({
 	window = { title = "MawyxxHub Demo", width = 920, height = 600, sidebarWidth = 156 },
@@ -94,4 +95,4 @@ hub:addButton(danger, "Destroy hub", function()
 	hub:Destroy()
 end)
 
-print("[MawyxxHub] Demo ready — RightShift to open")
+print("[MawyxxHub] Demo ready — RightShift. Color = palette + OK/Cancel")

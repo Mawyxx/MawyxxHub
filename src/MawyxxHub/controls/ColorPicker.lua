@@ -1,4 +1,5 @@
 -- Color picker: click swatch → mini palette → OK / Cancel.
+-- MAWYXX_COLOR_PALETTE_V2
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 
@@ -56,7 +57,7 @@ function ColorPicker.build(hub, element)
 		PaddingRight = UDim.new(0, 4),
 	})
 
-	local label = TextLabel(row, element.label, 14, config.colors.text, config.font)
+	local label = CreateMod.TextLabel(row, element.label, 14, config.colors.text, config.font)
 	label.Size = UDim2.new(0.65, 0, 1, 0)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -69,7 +70,7 @@ function ColorPicker.build(hub, element)
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
-		ZIndex = 22,
+		ZIndex = 5,
 	})
 	Stroke(swatch, config.colors.border, 1)
 	Corner(swatch, 3)
@@ -80,14 +81,17 @@ function ColorPicker.build(hub, element)
 	local panelW = gridW + PANEL_PAD * 2
 	local panelH = PANEL_PAD + gridH + 8 + 22 + 8 + BTN_H + PANEL_PAD
 
+	-- Parent to ScreenGui so the menu is never clipped by content/groups
+	local host = hub.screenGui
 	local panel = Create("Frame", {
-		Name = "ColorPalette",
-		Parent = hub.overlay,
+		Name = "MawyxxColorPalette",
+		Parent = host,
 		Size = UDim2.fromOffset(panelW, panelH),
 		BackgroundColor3 = config.colors.surface,
 		BorderSizePixel = 0,
 		Visible = false,
-		ZIndex = 260,
+		ZIndex = 1000,
+		Active = true,
 	})
 	Stroke(panel, config.colors.border, 1)
 	Corner(panel, 6)
@@ -99,7 +103,7 @@ function ColorPicker.build(hub, element)
 		Size = UDim2.fromOffset(gridW, gridH),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		ZIndex = 261,
+		ZIndex = 1001,
 	})
 
 	local pending = color
@@ -113,7 +117,7 @@ function ColorPicker.build(hub, element)
 		Size = UDim2.fromOffset(gridW, 22),
 		BackgroundColor3 = pending,
 		BorderSizePixel = 0,
-		ZIndex = 261,
+		ZIndex = 1001,
 	})
 	Stroke(preview, config.colors.borderSoft, 1)
 	Corner(preview, 3)
@@ -138,11 +142,11 @@ function ColorPicker.build(hub, element)
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
-			ZIndex = 262,
+			ZIndex = 1002,
 		})
 		Corner(cell, 4)
 		local cellStroke = Stroke(cell, config.colors.borderSoft, 1)
-		table.insert(cellButtons, { color = c, stroke = cellStroke, btn = cell })
+		table.insert(cellButtons, { color = c, stroke = cellStroke })
 		hub._pageMaid:Connect(cell.MouseButton1Click, function()
 			pending = c
 			refreshSelection()
@@ -163,7 +167,7 @@ function ColorPicker.build(hub, element)
 		TextSize = 13,
 		Font = config.font,
 		AutoButtonColor = false,
-		ZIndex = 262,
+		ZIndex = 1002,
 	})
 	Stroke(cancelBtn, config.colors.borderSoft, 1)
 	Corner(cancelBtn, 4)
@@ -179,7 +183,7 @@ function ColorPicker.build(hub, element)
 		TextSize = 13,
 		Font = config.font,
 		AutoButtonColor = false,
-		ZIndex = 262,
+		ZIndex = 1002,
 	})
 	Stroke(okBtn, config.colors.purple, 1)
 	Corner(okBtn, 4)
@@ -202,24 +206,30 @@ function ColorPicker.build(hub, element)
 	local function openPanel()
 		pending = committed
 		refreshSelection()
+
 		local pos = swatch.AbsolutePosition
 		local size = swatch.AbsoluteSize
-		local parentPos = hub.overlay.AbsolutePosition
-		local parentSize = hub.overlay.AbsoluteSize
+		local guiPos = host.AbsolutePosition
+		local guiSize = host.AbsoluteSize
 
-		local x = pos.X - parentPos.X + size.X - panelW
-		local y = pos.Y - parentPos.Y + size.Y + 6
+		-- AbsolutePosition is screen-space; ScreenGui children use offset from gui origin
+		local x = pos.X - guiPos.X + size.X - panelW
+		local y = pos.Y - guiPos.Y + size.Y + 6
+
 		if x < 8 then
 			x = 8
 		end
-		if x + panelW > parentSize.X - 8 then
-			x = math.max(8, parentSize.X - panelW - 8)
+		if guiSize.X > 0 and x + panelW > guiSize.X - 8 then
+			x = math.max(8, guiSize.X - panelW - 8)
 		end
-		if y + panelH > parentSize.Y - 8 then
-			y = pos.Y - parentPos.Y - panelH - 6
+		if guiSize.Y > 0 and y + panelH > guiSize.Y - 8 then
+			y = pos.Y - guiPos.Y - panelH - 6
+		end
+		if y < 8 then
+			y = 8
 		end
 
-		panel.Position = UDim2.fromOffset(x, y)
+		panel.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
 		panel.Visible = true
 		open = true
 	end
@@ -240,9 +250,9 @@ function ColorPicker.build(hub, element)
 		if open then
 			pending = committed
 			closePanel()
-		else
-			openPanel()
+			return
 		end
+		openPanel()
 	end)
 
 	hub._pageMaid:Connect(cancelBtn.MouseButton1Click, function()
