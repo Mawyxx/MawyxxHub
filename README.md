@@ -38,9 +38,11 @@ hub:endUpdate()
 ```lua
 local ls = loadstring or load
 ls(game:HttpGet(
-	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo.lua"
+	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo.lua?v=" .. tostring(tick())
 ))()
 ```
+
+`?v=...` bypasses executor HttpGet cache (raw.githubusercontent also caches ~5 min).
 
 ---
 
