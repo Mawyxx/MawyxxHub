@@ -4,7 +4,7 @@
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/CACHEBUST_SHA/examples/FakeDemo.client.lua"))()
 ]]
 
-local COMMIT = "9b5abc222312fbe469a7a1137625815431710e02"
+local COMMIT = "d3ac1ea84a28922e5cf3e4dd1e874066f83047a9"
 local W, H, SIDE = 760, 580, 150
 
 local function httpGet(url)
