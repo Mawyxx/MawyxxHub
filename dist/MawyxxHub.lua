@@ -127,8 +127,8 @@ __modules["config/Defaults"] = function(__require)
 	
 	local Defaults = {
 		window = {
-			width = 1100,
-			height = 620,
+			width = 1180,
+			height = 640,
 			title = "MawyxxHub",
 		},
 		colors = {
@@ -163,9 +163,10 @@ __modules["config/Defaults"] = function(__require)
 		-- Equal WIDTH; guaranteed air between columns (same outer pad L/R).
 		group = {
 			columns = 2,
-			gap = 14, -- vertical between groups in a column
-			gutter = 24, -- horizontal air between left and right cards
-			padding = 18, -- page inset (left AND right — same)
+			gap = 14,
+			gutter = 24,
+			padding = 18,
+			innerPadding = 12, -- inside each group card (keeps toggles off the stroke)
 			headerHeight = 36,
 			corner = 4,
 		},
@@ -338,6 +339,10 @@ __modules["controls/ColorPicker"] = function(__require)
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
+		})
+		Create("UIPadding", {
+			Parent = row,
+			PaddingRight = UDim.new(0, 2),
 		})
 		Stroke(swatch, config.colors.border, 1)
 	
@@ -587,8 +592,9 @@ __modules["controls/Slider"] = function(__require)
 	
 		local valueLabel = TextLabel(row, tostring(val) .. "/" .. tostring(max), 13, config.colors.textSoft, config.font)
 		valueLabel.Position = UDim2.new(0.5, 0, 0, 0)
-		valueLabel.Size = UDim2.new(0.5, 0, 0, 22)
+		valueLabel.Size = UDim2.new(0.5, -2, 0, 22)
 		valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+		valueLabel.TextTruncate = Enum.TextTruncate.AtEnd
 	
 		local track = Create("TextButton", {
 			Parent = row,
@@ -699,6 +705,11 @@ __modules["controls/Toggle"] = function(__require)
 			BorderSizePixel = 0,
 			Text = "",
 			AutoButtonColor = false,
+		})
+		-- Room for UIStroke so the pill is not clipped by the card edge
+		Create("UIPadding", {
+			Parent = row,
+			PaddingRight = UDim.new(0, 2),
 		})
 		Corner(toggleBtn, 11)
 		Stroke(toggleBtn, config.colors.borderSoft, 1)
@@ -1188,7 +1199,6 @@ end
 
 __modules["navigation/Groups"] = function(__require)
 	-- Named group card: equal WIDTH (from column), HEIGHT follows controls.
-	-- Declared only by text name via hub:addGroup(tab, "Aim") — no designer/drawing step.
 	
 	local CreateMod = __require("visual/Create")
 	local Factory = __require("controls/Factory")
@@ -1205,6 +1215,7 @@ __modules["navigation/Groups"] = function(__require)
 		local config = hub.config
 		local g = config.group or {}
 		local headerH = g.headerHeight or 36
+		local inset = g.innerPadding or 12
 	
 		local frame = Create("Frame", {
 			Name = "Group_" .. group.name,
@@ -1212,7 +1223,7 @@ __modules["navigation/Groups"] = function(__require)
 			Size = UDim2.new(1, 0, 0, 0),
 			BackgroundColor3 = config.colors.bg,
 			BorderSizePixel = 0,
-			ClipsDescendants = false,
+			ClipsDescendants = true, -- keep stroke clean; padding keeps controls inside
 			AutomaticSize = Enum.AutomaticSize.Y,
 			LayoutOrder = layoutOrder or 0,
 		})
@@ -1233,8 +1244,8 @@ __modules["navigation/Groups"] = function(__require)
 			LayoutOrder = 1,
 		})
 		local header = TextLabel(headerRow, group.name, 15, config.colors.text, config.font)
-		header.Position = UDim2.new(0, 10, 0, 0)
-		header.Size = UDim2.new(1, -20, 1, 0)
+		header.Position = UDim2.new(0, inset, 0, 0)
+		header.Size = UDim2.new(1, -inset * 2, 1, 0)
 	
 		Create("Frame", {
 			Parent = frame,
@@ -1255,15 +1266,15 @@ __modules["navigation/Groups"] = function(__require)
 		})
 		Create("UIListLayout", {
 			Parent = list,
-			Padding = UDim.new(0, 6),
+			Padding = UDim.new(0, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		})
 		Create("UIPadding", {
 			Parent = list,
 			PaddingTop = UDim.new(0, 8),
-			PaddingBottom = UDim.new(0, 10),
-			PaddingLeft = UDim.new(0, 8),
-			PaddingRight = UDim.new(0, 8),
+			PaddingBottom = UDim.new(0, 12),
+			PaddingLeft = UDim.new(0, inset),
+			PaddingRight = UDim.new(0, inset),
 		})
 	
 		for _, element in ipairs(elements) do
@@ -1280,7 +1291,7 @@ __modules["navigation/Groups"] = function(__require)
 end
 
 __modules["navigation/Pages"] = function(__require)
-	-- Tab page: equal-width columns; gutter from AbsoluteSize (never collapses).
+	-- Tab page: column widths from scroll viewport (UIPadding does not shrink AbsoluteSize).
 	
 	local CreateMod = __require("visual/Create")
 	local Groups = __require("navigation/Groups")
@@ -1298,13 +1309,21 @@ __modules["navigation/Pages"] = function(__require)
 		})
 	end
 	
-	local function layoutTwoColumns(row, left, right, gutter)
-		local w = row.AbsoluteSize.X
-		if w <= 0 then
+	--- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
+	local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
+		local viewW = scroll.AbsoluteSize.X
+		if viewW <= 0 then
 			return
 		end
-		local g = math.max(gutter, 12)
-		local colW = math.max(math.floor((w - g) / 2), 1)
+		local g = math.max(gutter, 16)
+		local p = math.max(pad, 12)
+		local scrollBar = 6
+		local usable = math.max(viewW - p * 2 - scrollBar, 80)
+		local colW = math.max(math.floor((usable - g) / 2), 40)
+	
+		row.Size = UDim2.new(0, usable, 0, 0)
+		row.Position = UDim2.new(0, p, 0, p)
+	
 		left.Size = UDim2.new(0, colW, 0, 0)
 		left.Position = UDim2.new(0, 0, 0, 0)
 		right.Size = UDim2.new(0, colW, 0, 0)
@@ -1353,19 +1372,14 @@ __modules["navigation/Pages"] = function(__require)
 				CanvasSize = UDim2.new(0, 0, 0, 0),
 				AutomaticCanvasSize = Enum.AutomaticSize.Y,
 				ScrollingDirection = Enum.ScrollingDirection.Y,
+				ClipsDescendants = true,
 			})
-			Create("UIPadding", {
-				Parent = scroll,
-				PaddingLeft = UDim.new(0, pad),
-				PaddingRight = UDim.new(0, pad),
-				PaddingTop = UDim.new(0, pad),
-				PaddingBottom = UDim.new(0, pad),
-			})
+			-- Vertical pad only via top offset on row; horizontal pad baked into layoutTwoColumns.
+			-- (UIPadding on ScrollingFrame does not reliably shrink child AbsoluteSize.)
 	
 			local row = Create("Frame", {
 				Name = "Columns",
 				Parent = scroll,
-				Size = UDim2.new(1, 0, 0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				AutomaticSize = Enum.AutomaticSize.Y,
@@ -1384,6 +1398,19 @@ __modules["navigation/Pages"] = function(__require)
 				})
 				addColumnList(col, gap)
 				cols[1] = col
+	
+				local function relayout1()
+					local viewW = scroll.AbsoluteSize.X
+					if viewW <= 0 then
+						return
+					end
+					local usable = math.max(viewW - pad * 2 - 6, 80)
+					row.Size = UDim2.new(0, usable, 0, 0)
+					row.Position = UDim2.new(0, pad, 0, pad)
+					col.Size = UDim2.new(1, 0, 0, 0)
+				end
+				hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout1)
+				task.defer(relayout1)
 			elseif columns == 2 then
 				local left = Create("Frame", {
 					Name = "Column1",
@@ -1406,13 +1433,22 @@ __modules["navigation/Pages"] = function(__require)
 				cols[2] = right
 	
 				local function relayout()
-					layoutTwoColumns(row, left, right, gutter)
+					layoutTwoColumns(scroll, row, left, right, gutter, pad)
 				end
-				hub._pageMaid:Connect(row:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+				hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+				hub._pageMaid:Connect(page:GetPropertyChangedSignal("AbsoluteSize"), relayout)
 				task.defer(relayout)
-				task.delay(0, relayout)
+				task.delay(0.05, relayout)
 			else
+				Create("UIPadding", {
+					Parent = scroll,
+					PaddingLeft = UDim.new(0, pad),
+					PaddingRight = UDim.new(0, pad),
+					PaddingTop = UDim.new(0, pad),
+					PaddingBottom = UDim.new(0, pad),
+				})
 				local shrink = math.ceil(gutter * (columns - 1) / columns)
+				row.Size = UDim2.new(1, 0, 0, 0)
 				Create("UIListLayout", {
 					Parent = row,
 					FillDirection = Enum.FillDirection.Horizontal,

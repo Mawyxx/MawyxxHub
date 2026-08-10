@@ -1,5 +1,4 @@
 -- Named group card: equal WIDTH (from column), HEIGHT follows controls.
--- Declared only by text name via hub:addGroup(tab, "Aim") — no designer/drawing step.
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 local Factory = require(script.Parent.Parent.controls.Factory)
@@ -16,6 +15,7 @@ function Groups.render(hub, group, parent, layoutOrder, elements)
 	local config = hub.config
 	local g = config.group or {}
 	local headerH = g.headerHeight or 36
+	local inset = g.innerPadding or 12
 
 	local frame = Create("Frame", {
 		Name = "Group_" .. group.name,
@@ -23,7 +23,7 @@ function Groups.render(hub, group, parent, layoutOrder, elements)
 		Size = UDim2.new(1, 0, 0, 0),
 		BackgroundColor3 = config.colors.bg,
 		BorderSizePixel = 0,
-		ClipsDescendants = false,
+		ClipsDescendants = true, -- keep stroke clean; padding keeps controls inside
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = layoutOrder or 0,
 	})
@@ -44,8 +44,8 @@ function Groups.render(hub, group, parent, layoutOrder, elements)
 		LayoutOrder = 1,
 	})
 	local header = TextLabel(headerRow, group.name, 15, config.colors.text, config.font)
-	header.Position = UDim2.new(0, 10, 0, 0)
-	header.Size = UDim2.new(1, -20, 1, 0)
+	header.Position = UDim2.new(0, inset, 0, 0)
+	header.Size = UDim2.new(1, -inset * 2, 1, 0)
 
 	Create("Frame", {
 		Parent = frame,
@@ -66,15 +66,15 @@ function Groups.render(hub, group, parent, layoutOrder, elements)
 	})
 	Create("UIListLayout", {
 		Parent = list,
-		Padding = UDim.new(0, 6),
+		Padding = UDim.new(0, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	})
 	Create("UIPadding", {
 		Parent = list,
 		PaddingTop = UDim.new(0, 8),
-		PaddingBottom = UDim.new(0, 10),
-		PaddingLeft = UDim.new(0, 8),
-		PaddingRight = UDim.new(0, 8),
+		PaddingBottom = UDim.new(0, 12),
+		PaddingLeft = UDim.new(0, inset),
+		PaddingRight = UDim.new(0, inset),
 	})
 
 	for _, element in ipairs(elements) do

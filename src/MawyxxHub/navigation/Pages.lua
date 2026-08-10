@@ -1,4 +1,4 @@
--- Tab page: equal-width columns; gutter from AbsoluteSize (never collapses).
+-- Tab page: column widths from scroll viewport (UIPadding does not shrink AbsoluteSize).
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 local Groups = require(script.Parent.Groups)
@@ -16,13 +16,21 @@ local function addColumnList(col, gap)
 	})
 end
 
-local function layoutTwoColumns(row, left, right, gutter)
-	local w = row.AbsoluteSize.X
-	if w <= 0 then
+--- Layout against the visible scroll width, not row.AbsoluteSize (padding-safe).
+local function layoutTwoColumns(scroll, row, left, right, gutter, pad)
+	local viewW = scroll.AbsoluteSize.X
+	if viewW <= 0 then
 		return
 	end
-	local g = math.max(gutter, 12)
-	local colW = math.max(math.floor((w - g) / 2), 1)
+	local g = math.max(gutter, 16)
+	local p = math.max(pad, 12)
+	local scrollBar = 6
+	local usable = math.max(viewW - p * 2 - scrollBar, 80)
+	local colW = math.max(math.floor((usable - g) / 2), 40)
+
+	row.Size = UDim2.new(0, usable, 0, 0)
+	row.Position = UDim2.new(0, p, 0, p)
+
 	left.Size = UDim2.new(0, colW, 0, 0)
 	left.Position = UDim2.new(0, 0, 0, 0)
 	right.Size = UDim2.new(0, colW, 0, 0)
@@ -71,19 +79,14 @@ function Pages.render(hub)
 			CanvasSize = UDim2.new(0, 0, 0, 0),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
+			ClipsDescendants = true,
 		})
-		Create("UIPadding", {
-			Parent = scroll,
-			PaddingLeft = UDim.new(0, pad),
-			PaddingRight = UDim.new(0, pad),
-			PaddingTop = UDim.new(0, pad),
-			PaddingBottom = UDim.new(0, pad),
-		})
+		-- Vertical pad only via top offset on row; horizontal pad baked into layoutTwoColumns.
+		-- (UIPadding on ScrollingFrame does not reliably shrink child AbsoluteSize.)
 
 		local row = Create("Frame", {
 			Name = "Columns",
 			Parent = scroll,
-			Size = UDim2.new(1, 0, 0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			AutomaticSize = Enum.AutomaticSize.Y,
@@ -102,6 +105,19 @@ function Pages.render(hub)
 			})
 			addColumnList(col, gap)
 			cols[1] = col
+
+			local function relayout1()
+				local viewW = scroll.AbsoluteSize.X
+				if viewW <= 0 then
+					return
+				end
+				local usable = math.max(viewW - pad * 2 - 6, 80)
+				row.Size = UDim2.new(0, usable, 0, 0)
+				row.Position = UDim2.new(0, pad, 0, pad)
+				col.Size = UDim2.new(1, 0, 0, 0)
+			end
+			hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout1)
+			task.defer(relayout1)
 		elseif columns == 2 then
 			local left = Create("Frame", {
 				Name = "Column1",
@@ -124,13 +140,22 @@ function Pages.render(hub)
 			cols[2] = right
 
 			local function relayout()
-				layoutTwoColumns(row, left, right, gutter)
+				layoutTwoColumns(scroll, row, left, right, gutter, pad)
 			end
-			hub._pageMaid:Connect(row:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+			hub._pageMaid:Connect(scroll:GetPropertyChangedSignal("AbsoluteSize"), relayout)
+			hub._pageMaid:Connect(page:GetPropertyChangedSignal("AbsoluteSize"), relayout)
 			task.defer(relayout)
-			task.delay(0, relayout)
+			task.delay(0.05, relayout)
 		else
+			Create("UIPadding", {
+				Parent = scroll,
+				PaddingLeft = UDim.new(0, pad),
+				PaddingRight = UDim.new(0, pad),
+				PaddingTop = UDim.new(0, pad),
+				PaddingBottom = UDim.new(0, pad),
+			})
 			local shrink = math.ceil(gutter * (columns - 1) / columns)
+			row.Size = UDim2.new(1, 0, 0, 0)
 			Create("UIListLayout", {
 				Parent = row,
 				FillDirection = Enum.FillDirection.Horizontal,

@@ -52,6 +52,10 @@ function ColorPicker.build(hub, element)
 		Text = "",
 		AutoButtonColor = false,
 	})
+	Create("UIPadding", {
+		Parent = row,
+		PaddingRight = UDim.new(0, 2),
+	})
 	Stroke(swatch, config.colors.border, 1)
 
 	local idx = 1

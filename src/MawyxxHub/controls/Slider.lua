@@ -31,8 +31,9 @@ function Slider.build(hub, element)
 
 	local valueLabel = TextLabel(row, tostring(val) .. "/" .. tostring(max), 13, config.colors.textSoft, config.font)
 	valueLabel.Position = UDim2.new(0.5, 0, 0, 0)
-	valueLabel.Size = UDim2.new(0.5, 0, 0, 22)
+	valueLabel.Size = UDim2.new(0.5, -2, 0, 22)
 	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+	valueLabel.TextTruncate = Enum.TextTruncate.AtEnd
 
 	local track = Create("TextButton", {
 		Parent = row,

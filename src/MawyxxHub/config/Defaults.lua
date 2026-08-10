@@ -2,8 +2,8 @@
 
 local Defaults = {
 	window = {
-		width = 1100,
-		height = 620,
+		width = 1180,
+		height = 640,
 		title = "MawyxxHub",
 	},
 	colors = {
@@ -38,9 +38,10 @@ local Defaults = {
 	-- Equal WIDTH; guaranteed air between columns (same outer pad L/R).
 	group = {
 		columns = 2,
-		gap = 14, -- vertical between groups in a column
-		gutter = 24, -- horizontal air between left and right cards
-		padding = 18, -- page inset (left AND right — same)
+		gap = 14,
+		gutter = 24,
+		padding = 18,
+		innerPadding = 12, -- inside each group card (keeps toggles off the stroke)
 		headerHeight = 36,
 		corner = 4,
 	},
