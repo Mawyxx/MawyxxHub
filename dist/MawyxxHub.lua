@@ -127,7 +127,7 @@ __modules["config/Defaults"] = function(__require)
 	
 	local Defaults = {
 		window = {
-			width = 760,
+			width = 1064,
 			height = 580,
 			sidebarWidth = 150,
 			title = "MawyxxHub",

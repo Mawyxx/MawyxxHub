@@ -19,7 +19,7 @@ local MawyxxHub = loadstring(httpGet(
 ))()
 
 local hub = MawyxxHub.new({
-	window = { title = "MawyxxHub Demo", width = 760, height = 580, sidebarWidth = 150 },
+	window = { title = "MawyxxHub Demo", width = 1064, height = 580, sidebarWidth = 150 },
 	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Demo / GitHub" },
 	startHidden = true,
 	group = { columns = 2, gap = 7, gutter = 12, padding = 12, innerPadding = 10 },
