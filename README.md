@@ -1,47 +1,37 @@
 # MawyxxHub
 
-Roblox GUI framework: **Tab → Group (text) → Controls**.
+Roblox GUI framework: **Tab → Group → Controls**. Equal-width groups, height by content.
 
-Equal-width groups, height follows content. Public repo + Rojo demo.
-
-## Quick start (Rojo)
-
-```bash
-git clone https://github.com/Mawyxx/MawyxxHub.git
-cd MawyxxHub
-rojo serve
-```
-
-Connect Rojo to Studio → Play. Fake demo menu opens automatically.
-
-## Demo script
-
-`examples/FakeDemo.client.lua` — fake tabs **Combat / Visuals / Player / Misc**, groups, toggles, sliders, dropdowns, buttons, color pickers.
-
-Manual require (if you only sync the module):
+## Run demo (GitHub → executor)
 
 ```lua
-local MawyxxHub = require(game.ReplicatedStorage.MawyxxHub)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/examples/FakeDemo.client.lua"))()
+```
+
+Loads `dist/MawyxxHub.lua` from this repo. **RightShift** opens/closes the menu (starts hidden).
+
+## Framework-only
+
+```lua
+local MawyxxHub = loadstring(game:HttpGet(
+  "https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua"
+))()
+
 local hub = MawyxxHub.new()
 local tab = hub:addTab("Combat")
 local g = hub:addGroup(tab, "Aim")
 hub:addToggle(g, "Enabled", "aim_on", false)
+-- RightShift opens GUI
 ```
 
-## Controls in a group
+## Rebuild bundle after source changes
+
+```bash
+python scripts/bundle.py
+```
+
+## Controls
 
 `addToggle` · `addSlider` · `addDropdown` · `addButton` · `addColorPicker`
 
-## Layout
-
-```lua
-hub:addTab("Combat")           -- sidebar text
-hub:addGroup(tab, "Aim")       -- named card, equal width
--- controls go into the group
-```
-
-`RightShift` — hide/show. `hub:Destroy()` — cleanup.
-
-## Structure
-
-`src/MawyxxHub` — framework · `examples/` — demos · `scripts/assert_adapters.ps1` — adapter boundary check
+Repo: https://github.com/Mawyxx/MawyxxHub

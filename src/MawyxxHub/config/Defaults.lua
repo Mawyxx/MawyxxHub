@@ -33,6 +33,8 @@ local Defaults = {
 		enabled = true,
 		placeholder = "Search",
 	},
+	-- Hub window starts hidden; RightShift opens/closes (framework-level).
+	startHidden = true,
 	-- Equal WIDTH groups; HEIGHT grows with controls. N columns, page scrolls.
 	group = {
 		columns = 2,
