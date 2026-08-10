@@ -54,7 +54,7 @@ function ColorPicker.build(hub, element)
 	})
 	Create("UIPadding", {
 		Parent = row,
-		PaddingRight = UDim.new(0, 2),
+		PaddingRight = UDim.new(0, 4),
 	})
 	Stroke(swatch, config.colors.border, 1)
 

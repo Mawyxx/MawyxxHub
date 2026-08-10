@@ -341,7 +341,7 @@ __modules["controls/ColorPicker"] = function(__require)
 		})
 		Create("UIPadding", {
 			Parent = row,
-			PaddingRight = UDim.new(0, 2),
+			PaddingRight = UDim.new(0, 4),
 		})
 		Stroke(swatch, config.colors.border, 1)
 	
