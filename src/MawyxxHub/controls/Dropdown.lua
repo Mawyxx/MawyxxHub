@@ -48,7 +48,7 @@ function Dropdown.build(hub, element)
 	currentText.Position = UDim2.new(0, 9, 0, 0)
 	currentText.Size = UDim2.new(1, -35, 1, 0)
 
-	local arrow = TextLabel(btn, "⌄", 15, config.colors.textSoft, config.font)
+	local arrow = TextLabel(btn, "v", 14, config.colors.textSoft, config.font)
 	arrow.Position = UDim2.new(1, -25, 0, 0)
 	arrow.Size = UDim2.new(0, 20, 1, 0)
 	arrow.TextXAlignment = Enum.TextXAlignment.Center

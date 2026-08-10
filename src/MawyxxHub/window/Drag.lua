@@ -31,11 +31,15 @@ function Drag.setup(hub)
 			startSize = hub.window.AbsoluteSize
 		end)
 		hub._maid:Connect(grip.MouseEnter, function()
-			hub:tween(grip, { TextTransparency = 0.05 })
+			for _, line in ipairs(hub._resizeGripLines or {}) do
+				hub:tween(line, { BackgroundTransparency = 0.05 })
+			end
 		end)
 		hub._maid:Connect(grip.MouseLeave, function()
 			if not resizing then
-				hub:tween(grip, { TextTransparency = 0.35 })
+				for _, line in ipairs(hub._resizeGripLines or {}) do
+					hub:tween(line, { BackgroundTransparency = 0.35 })
+				end
 			end
 		end)
 	end
@@ -66,8 +70,8 @@ function Drag.setup(hub)
 		if inp.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = false
 			resizing = false
-			if grip then
-				grip.TextTransparency = 0.35
+			for _, line in ipairs(hub._resizeGripLines or {}) do
+				line.BackgroundTransparency = 0.35
 			end
 		end
 	end)

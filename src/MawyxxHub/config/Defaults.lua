@@ -28,7 +28,7 @@ local Defaults = {
 		purpleDark = Color3.fromRGB(90, 74, 160),
 		white = Color3.fromRGB(255, 255, 255),
 	},
-	font = Enum.Font.Gotham,
+	font = Enum.Font.Code,
 	animations = true,
 	settingsTable = "MawyxxHubSettings",
 	toggleKey = Enum.KeyCode.RightControl,

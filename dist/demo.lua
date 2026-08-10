@@ -165,7 +165,7 @@ __modules["config/Defaults"] = function(__require)
 			purpleDark = Color3.fromRGB(90, 74, 160),
 			white = Color3.fromRGB(255, 255, 255),
 		},
-		font = Enum.Font.Gotham,
+		font = Enum.Font.Code,
 		animations = true,
 		settingsTable = "MawyxxHubSettings",
 		toggleKey = Enum.KeyCode.RightControl,
@@ -794,7 +794,7 @@ __modules["controls/Dropdown"] = function(__require)
 		currentText.Position = UDim2.new(0, 9, 0, 0)
 		currentText.Size = UDim2.new(1, -35, 1, 0)
 	
-		local arrow = TextLabel(btn, "⌄", 15, config.colors.textSoft, config.font)
+		local arrow = TextLabel(btn, "v", 14, config.colors.textSoft, config.font)
 		arrow.Position = UDim2.new(1, -25, 0, 0)
 		arrow.Size = UDim2.new(0, 20, 1, 0)
 		arrow.TextXAlignment = Enum.TextXAlignment.Center
@@ -2355,7 +2355,7 @@ __modules["visual/Create"] = function(__require)
 			Text = text,
 			TextColor3 = color or Color3.fromRGB(224, 224, 226),
 			TextSize = size or 14,
-			Font = font or Enum.Font.Gotham,
+			Font = font or Enum.Font.Code,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			BorderSizePixel = 0,
@@ -2503,17 +2503,13 @@ __modules["window/Build"] = function(__require)
 		local searchEnabled = config.search == nil or config.search.enabled ~= false
 		local placeholder = (config.search and config.search.placeholder) or "Search"
 	
-		-- Quiet search strip (no box) — icon + left-aligned field
+		-- Centered search strip (no icon / no box)
 		local closeReserve = 40
-		local searchIcon = TextLabel(topbar, "⌕", 14, config.colors.textMuted, config.font)
-		searchIcon.Position = UDim2.new(0, 14, 0, 0)
-		searchIcon.Size = UDim2.new(0, 18, 1, 0)
-		searchIcon.TextXAlignment = Enum.TextXAlignment.Left
-	
 		local search = Create("TextBox", {
 			Parent = topbar,
-			Position = UDim2.new(0, 34, 0, 0),
-			Size = UDim2.new(1, -(closeReserve + 40), 1, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, -math.floor(closeReserve / 2), 0.5, 0),
+			Size = UDim2.new(1, -(closeReserve + 24), 1, 0),
 			BackgroundTransparency = 1,
 			Text = "",
 			PlaceholderText = searchEnabled and placeholder or "Search disabled",
@@ -2523,7 +2519,7 @@ __modules["window/Build"] = function(__require)
 			Font = config.font,
 			ClearTextOnFocus = false,
 			BorderSizePixel = 0,
-			TextXAlignment = Enum.TextXAlignment.Left,
+			TextXAlignment = Enum.TextXAlignment.Center,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			TextEditable = searchEnabled,
 		})
@@ -2546,9 +2542,9 @@ __modules["window/Build"] = function(__require)
 			Size = UDim2.fromOffset(28, 28),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Text = "×",
+			Text = "X",
 			TextColor3 = config.colors.textMuted,
-			TextSize = 20,
+			TextSize = 14,
 			Font = config.font,
 			AutoButtonColor = false,
 			ZIndex = 5,
@@ -2613,24 +2609,41 @@ __modules["window/Build"] = function(__require)
 		footerText.TextXAlignment = Enum.TextXAlignment.Center
 		footerText.TextTransparency = 0.25
 	
-		-- Quiet resize hint (wired in Drag.setup)
+		-- Quiet resize hint (wired in Drag.setup) — geometric, no emoji
 		local resizeGrip = Create("TextButton", {
 			Name = "ResizeGrip",
 			Parent = window,
 			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -4, 1, -2),
-			Size = UDim2.fromOffset(16, 16),
+			Position = UDim2.new(1, -2, 1, -2),
+			Size = UDim2.fromOffset(14, 14),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Text = "⌟",
-			TextColor3 = config.colors.textMuted,
-			TextTransparency = 0.35,
-			TextSize = 14,
-			Font = config.font,
+			Text = "",
 			AutoButtonColor = false,
 			ZIndex = 20,
 		})
+		local gripA = Create("Frame", {
+			Parent = resizeGrip,
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -2, 1, -2),
+			Size = UDim2.fromOffset(8, 1),
+			BackgroundColor3 = config.colors.textMuted,
+			BackgroundTransparency = 0.35,
+			BorderSizePixel = 0,
+			Rotation = -45,
+		})
+		local gripB = Create("Frame", {
+			Parent = resizeGrip,
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -5, 1, -2),
+			Size = UDim2.fromOffset(5, 1),
+			BackgroundColor3 = config.colors.textMuted,
+			BackgroundTransparency = 0.35,
+			BorderSizePixel = 0,
+			Rotation = -45,
+		})
 		hub.resizeGrip = resizeGrip
+		hub._resizeGripLines = { gripA, gripB }
 	
 		hub.pages = {}
 		hub.searchQuery = ""
@@ -2765,11 +2778,15 @@ __modules["window/Drag"] = function(__require)
 				startSize = hub.window.AbsoluteSize
 			end)
 			hub._maid:Connect(grip.MouseEnter, function()
-				hub:tween(grip, { TextTransparency = 0.05 })
+				for _, line in ipairs(hub._resizeGripLines or {}) do
+					hub:tween(line, { BackgroundTransparency = 0.05 })
+				end
 			end)
 			hub._maid:Connect(grip.MouseLeave, function()
 				if not resizing then
-					hub:tween(grip, { TextTransparency = 0.35 })
+					for _, line in ipairs(hub._resizeGripLines or {}) do
+						hub:tween(line, { BackgroundTransparency = 0.35 })
+					end
 				end
 			end)
 		end
@@ -2800,8 +2817,8 @@ __modules["window/Drag"] = function(__require)
 			if inp.UserInputType == Enum.UserInputType.MouseButton1 then
 				dragging = false
 				resizing = false
-				if grip then
-					grip.TextTransparency = 0.35
+				for _, line in ipairs(hub._resizeGripLines or {}) do
+					line.BackgroundTransparency = 0.35
 				end
 			end
 		end)

@@ -41,7 +41,7 @@ local function TextLabel(parent, text, size, color, font)
 		Text = text,
 		TextColor3 = color or Color3.fromRGB(224, 224, 226),
 		TextSize = size or 14,
-		Font = font or Enum.Font.Gotham,
+		Font = font or Enum.Font.Code,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Center,
 		BorderSizePixel = 0,

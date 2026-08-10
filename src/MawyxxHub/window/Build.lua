@@ -129,17 +129,13 @@ function Build.window(hub)
 	local searchEnabled = config.search == nil or config.search.enabled ~= false
 	local placeholder = (config.search and config.search.placeholder) or "Search"
 
-	-- Quiet search strip (no box) — icon + left-aligned field
+	-- Centered search strip (no icon / no box)
 	local closeReserve = 40
-	local searchIcon = TextLabel(topbar, "⌕", 14, config.colors.textMuted, config.font)
-	searchIcon.Position = UDim2.new(0, 14, 0, 0)
-	searchIcon.Size = UDim2.new(0, 18, 1, 0)
-	searchIcon.TextXAlignment = Enum.TextXAlignment.Left
-
 	local search = Create("TextBox", {
 		Parent = topbar,
-		Position = UDim2.new(0, 34, 0, 0),
-		Size = UDim2.new(1, -(closeReserve + 40), 1, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, -math.floor(closeReserve / 2), 0.5, 0),
+		Size = UDim2.new(1, -(closeReserve + 24), 1, 0),
 		BackgroundTransparency = 1,
 		Text = "",
 		PlaceholderText = searchEnabled and placeholder or "Search disabled",
@@ -149,7 +145,7 @@ function Build.window(hub)
 		Font = config.font,
 		ClearTextOnFocus = false,
 		BorderSizePixel = 0,
-		TextXAlignment = Enum.TextXAlignment.Left,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		TextYAlignment = Enum.TextYAlignment.Center,
 		TextEditable = searchEnabled,
 	})
@@ -172,9 +168,9 @@ function Build.window(hub)
 		Size = UDim2.fromOffset(28, 28),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Text = "×",
+		Text = "X",
 		TextColor3 = config.colors.textMuted,
-		TextSize = 20,
+		TextSize = 14,
 		Font = config.font,
 		AutoButtonColor = false,
 		ZIndex = 5,
@@ -239,24 +235,41 @@ function Build.window(hub)
 	footerText.TextXAlignment = Enum.TextXAlignment.Center
 	footerText.TextTransparency = 0.25
 
-	-- Quiet resize hint (wired in Drag.setup)
+	-- Quiet resize hint (wired in Drag.setup) — geometric, no emoji
 	local resizeGrip = Create("TextButton", {
 		Name = "ResizeGrip",
 		Parent = window,
 		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -4, 1, -2),
-		Size = UDim2.fromOffset(16, 16),
+		Position = UDim2.new(1, -2, 1, -2),
+		Size = UDim2.fromOffset(14, 14),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		Text = "⌟",
-		TextColor3 = config.colors.textMuted,
-		TextTransparency = 0.35,
-		TextSize = 14,
-		Font = config.font,
+		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 20,
 	})
+	local gripA = Create("Frame", {
+		Parent = resizeGrip,
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -2, 1, -2),
+		Size = UDim2.fromOffset(8, 1),
+		BackgroundColor3 = config.colors.textMuted,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Rotation = -45,
+	})
+	local gripB = Create("Frame", {
+		Parent = resizeGrip,
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -5, 1, -2),
+		Size = UDim2.fromOffset(5, 1),
+		BackgroundColor3 = config.colors.textMuted,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Rotation = -45,
+	})
 	hub.resizeGrip = resizeGrip
+	hub._resizeGripLines = { gripA, gripB }
 
 	hub.pages = {}
 	hub.searchQuery = ""
