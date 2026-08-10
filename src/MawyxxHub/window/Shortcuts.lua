@@ -46,6 +46,22 @@ function Shortcuts.setup(hub)
 		end
 	end
 
+	local function clearSearch()
+		local box = hub.searchBox
+		if box then
+			if box:IsFocused() then
+				box:ReleaseFocus()
+			end
+			if box.Text ~= "" then
+				box.Text = ""
+			end
+		end
+		if hub.searchQuery ~= "" then
+			hub.searchQuery = ""
+			hub:_refreshPages()
+		end
+	end
+
 	local function setOpen(open)
 		if hub._destroyed then
 			return
@@ -82,6 +98,8 @@ function Shortcuts.setup(hub)
 				end
 			end)
 		else
+			clearSearch()
+
 			if hub.config.animations == false then
 				hub.window.Size = STRIP
 				hub.window.Visible = false
