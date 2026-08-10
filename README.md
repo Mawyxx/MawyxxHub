@@ -44,6 +44,17 @@ ls(game:HttpGet(
 
 `?v=...` bypasses executor HttpGet cache (raw.githubusercontent also caches ~5 min).
 
+### Play demo (working ESP / tracers / speed / fly / fullbright)
+
+```lua
+local ls = loadstring or load
+ls(game:HttpGet(
+	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo_play.lua?v=" .. tostring(tick())
+))()
+```
+
+UI demo only: `dist/demo.lua` · Functional demo: `dist/demo_play.lua`
+
 ---
 
 ## Hierarchy

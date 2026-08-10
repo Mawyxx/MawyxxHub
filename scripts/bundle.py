@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bundle src/MawyxxHub → dist/MawyxxHub.lua (main) + dist/demo.lua (optional)."""
+"""Bundle src/MawyxxHub → dist/MawyxxHub.lua + dist/demo.lua + dist/demo_play.lua."""
 
 from __future__ import annotations
 
@@ -99,6 +99,15 @@ def main() -> None:
     run_parts.append("")
     DEMO_OUT.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
 
+    play_path = Path(__file__).resolve().parent.parent / "examples" / "demo_play_inline.lua"
+    PLAY_OUT = DIST / "demo_play.lua"
+    play_parts = parts[:-2]
+    play_parts.append("")
+    play_parts.append("-- ===== PLAY DEMO =====")
+    play_parts.extend(play_path.read_text(encoding="utf-8").splitlines())
+    play_parts.append("")
+    PLAY_OUT.write_text("\n".join(play_parts), encoding="utf-8", newline="\n")
+
     # Drop legacy versioned / alias files if present
     for stale in DIST.glob("___RUN*"):
         stale.unlink()
@@ -111,6 +120,7 @@ def main() -> None:
 
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes, {len(files)} modules, leftover={leftover})")
     print(f"Wrote {DEMO_OUT} ({DEMO_OUT.stat().st_size} bytes)")
+    print(f"Wrote {PLAY_OUT} ({PLAY_OUT.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":

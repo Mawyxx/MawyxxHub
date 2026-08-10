@@ -1,0 +1,452 @@
+-- Functional demo: ESP / tracers / names / distance + basic player helpers.
+-- Bundled into dist/demo_play.lua (appended after framework).
+
+print("[MawyxxHub] play demo loading")
+
+local MawyxxHub = __require("init")
+assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local hub = MawyxxHub.new({
+	window = { title = "MawyxxHub Play", width = 920, height = 600, sidebarWidth = 156 },
+	brand = { prefix = "Mawyxx", accent = "Hub", footer = "Play / Demo" },
+	startHidden = false,
+	toggleKey = Enum.KeyCode.RightControl,
+	group = {
+		columns = 2,
+		gap = 10,
+		gutter = 14,
+		padding = 14,
+		paddingLeft = 14,
+		paddingRight = 10,
+		innerPadding = 12,
+	},
+})
+
+------------------------------------------------------------------------
+-- Feature runtime
+------------------------------------------------------------------------
+
+local folder = Instance.new("Folder")
+folder.Name = "MawyxxPlayVisuals"
+local okCore = pcall(function()
+	folder.Parent = game:GetService("CoreGui")
+end)
+if not okCore then
+	folder.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local overlayGui = Instance.new("ScreenGui")
+overlayGui.Name = "MawyxxEspOverlay"
+overlayGui.IgnoreGuiInset = true
+overlayGui.ResetOnSpawn = false
+overlayGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+overlayGui.Parent = folder
+
+local entries = {} -- [Player] = { highlight, billboard, nameLabel, distLabel, tracer }
+local savedLighting = {
+	Brightness = Lighting.Brightness,
+	Ambient = Lighting.Ambient,
+	OutdoorAmbient = Lighting.OutdoorAmbient,
+	FogEnd = Lighting.FogEnd,
+	ClockTime = Lighting.ClockTime,
+}
+local baseWalkSpeed = 16
+local flyConn = nil
+local flyBV = nil
+
+local function flag(name, fallback)
+	local v = hub:get(name)
+	if v == nil then
+		return fallback
+	end
+	return v
+end
+
+local function clearEntry(plr)
+	local e = entries[plr]
+	if not e then
+		return
+	end
+	if e.highlight then
+		e.highlight:Destroy()
+	end
+	if e.billboard then
+		e.billboard:Destroy()
+	end
+	if e.tracer then
+		e.tracer:Destroy()
+	end
+	entries[plr] = nil
+end
+
+local function ensureEntry(plr)
+	local e = entries[plr]
+	if e then
+		return e
+	end
+	e = {}
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "EspHighlight"
+	highlight.FillTransparency = 1
+	highlight.OutlineTransparency = 0
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.Enabled = false
+	highlight.Parent = folder
+	e.highlight = highlight
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "EspTag"
+	billboard.AlwaysOnTop = true
+	billboard.Size = UDim2.fromOffset(160, 36)
+	billboard.StudsOffset = Vector3.new(0, 2.6, 0)
+	billboard.Enabled = false
+	billboard.Parent = folder
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Size = UDim2.new(1, 0, 0, 18)
+	nameLabel.Font = Enum.Font.Code
+	nameLabel.TextSize = 13
+	nameLabel.TextColor3 = Color3.new(1, 1, 1)
+	nameLabel.TextStrokeTransparency = 0.5
+	nameLabel.Text = plr.Name
+	nameLabel.Parent = billboard
+
+	local distLabel = Instance.new("TextLabel")
+	distLabel.BackgroundTransparency = 1
+	distLabel.Position = UDim2.new(0, 0, 0, 16)
+	distLabel.Size = UDim2.new(1, 0, 0, 16)
+	distLabel.Font = Enum.Font.Code
+	distLabel.TextSize = 11
+	distLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+	distLabel.TextStrokeTransparency = 0.5
+	distLabel.Text = ""
+	distLabel.Parent = billboard
+
+	e.billboard = billboard
+	e.nameLabel = nameLabel
+	e.distLabel = distLabel
+
+	local tracer = Instance.new("Frame")
+	tracer.Name = "Tracer"
+	tracer.AnchorPoint = Vector2.new(0.5, 0.5)
+	tracer.BorderSizePixel = 0
+	tracer.BackgroundColor3 = Color3.new(1, 1, 1)
+	tracer.Visible = false
+	tracer.ZIndex = 50
+	tracer.Parent = overlayGui
+	e.tracer = tracer
+
+	entries[plr] = e
+	return e
+end
+
+local function sameTeam(plr)
+	if LocalPlayer.Team == nil or plr.Team == nil then
+		return false
+	end
+	return LocalPlayer.Team == plr.Team
+end
+
+local function characterRoot(plr)
+	local char = plr.Character
+	if not char then
+		return nil
+	end
+	return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+end
+
+local function updateTracer(frame, from, to, color)
+	local mid = (from + to) / 2
+	local delta = to - from
+	local length = delta.Magnitude
+	if length < 1 then
+		frame.Visible = false
+		return
+	end
+	frame.Visible = true
+	frame.BackgroundColor3 = color
+	frame.Size = UDim2.fromOffset(math.max(1, length), 1)
+	frame.Position = UDim2.fromOffset(mid.X, mid.Y)
+	frame.Rotation = math.deg(math.atan2(delta.Y, delta.X))
+end
+
+local function applyWalkSpeed()
+	local char = LocalPlayer.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not hum then
+		return
+	end
+	if flag("play_speed_on", false) then
+		hum.WalkSpeed = flag("play_walkspeed", 16)
+	else
+		hum.WalkSpeed = baseWalkSpeed
+	end
+end
+
+local function stopFly()
+	if flyConn then
+		flyConn:Disconnect()
+		flyConn = nil
+	end
+	if flyBV then
+		flyBV:Destroy()
+		flyBV = nil
+	end
+end
+
+local function startFly()
+	stopFly()
+	local char = LocalPlayer.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return
+	end
+	local bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	bv.Velocity = Vector3.zero
+	bv.Parent = root
+	flyBV = bv
+
+	flyConn = RunService.RenderStepped:Connect(function()
+		if not flag("play_fly", false) or not flyBV or not flyBV.Parent then
+			stopFly()
+			return
+		end
+		local cam = workspace.CurrentCamera
+		if not cam then
+			return
+		end
+		local speed = flag("play_flyspeed", 50)
+		local dir = Vector3.zero
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			dir += cam.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			dir -= cam.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			dir -= cam.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			dir += cam.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			dir += Vector3.yAxis
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+			dir -= Vector3.yAxis
+		end
+		if dir.Magnitude > 0 then
+			dir = dir.Unit * speed
+		end
+		flyBV.Velocity = dir
+	end)
+end
+
+local function applyFullbright(on)
+	if on then
+		Lighting.Brightness = 2
+		Lighting.Ambient = Color3.fromRGB(180, 180, 180)
+		Lighting.OutdoorAmbient = Color3.fromRGB(180, 180, 180)
+		Lighting.FogEnd = 1e6
+		Lighting.ClockTime = 14
+	else
+		Lighting.Brightness = savedLighting.Brightness
+		Lighting.Ambient = savedLighting.Ambient
+		Lighting.OutdoorAmbient = savedLighting.OutdoorAmbient
+		Lighting.FogEnd = savedLighting.FogEnd
+		Lighting.ClockTime = savedLighting.ClockTime
+	end
+end
+
+local function applyFog()
+	if flag("play_fullbright", false) then
+		return
+	end
+	local fog = flag("play_fog", 40)
+	Lighting.FogEnd = math.max(50, fog * 25)
+end
+
+local function applyCameraFov()
+	local cam = workspace.CurrentCamera
+	if cam then
+		cam.FieldOfView = flag("play_cam_fov", 70)
+	end
+end
+
+local renderConn = RunService.RenderStepped:Connect(function()
+	Camera = workspace.CurrentCamera
+	if not Camera then
+		return
+	end
+
+	local espOn = flag("play_esp_on", false)
+	local boxes = flag("play_esp_box", true)
+	local names = flag("play_esp_names", true)
+	local dists = flag("play_esp_dist", true)
+	local tracers = flag("play_esp_tracers", false)
+	local teamCheck = flag("play_team_check", true)
+	local maxDist = flag("play_maxdistance", 2500)
+	local color = flag("play_esp_color", Color3.fromRGB(118, 100, 200))
+	local origin = Camera.ViewportSize
+	local myRoot = characterRoot(LocalPlayer)
+	local myPos = myRoot and myRoot.Position
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer then
+			local root = characterRoot(plr)
+			local skip = (not espOn)
+				or (not root)
+				or (teamCheck and sameTeam(plr))
+				or (myPos and (root.Position - myPos).Magnitude > maxDist)
+
+			if skip then
+				clearEntry(plr)
+			else
+				local e = ensureEntry(plr)
+				e.highlight.Adornee = plr.Character
+				e.highlight.OutlineColor = color
+				e.highlight.Enabled = boxes
+
+				e.billboard.Adornee = root
+				e.billboard.Enabled = names or dists
+				e.nameLabel.Visible = names
+				e.nameLabel.Text = plr.DisplayName ~= "" and plr.DisplayName or plr.Name
+				e.nameLabel.TextColor3 = color
+				e.distLabel.Visible = dists
+				if dists and myPos then
+					e.distLabel.Text = string.format("%d studs", math.floor((root.Position - myPos).Magnitude + 0.5))
+				else
+					e.distLabel.Text = ""
+				end
+
+				if tracers then
+					local fromY = flag("play_tracer_bottom", true) and origin.Y or (origin.Y * 0.5)
+					local screen, onScreen = Camera:WorldToViewportPoint(root.Position)
+					if onScreen and screen.Z > 0 then
+						updateTracer(e.tracer, Vector2.new(origin.X / 2, fromY), Vector2.new(screen.X, screen.Y), color)
+					else
+						e.tracer.Visible = false
+					end
+				else
+					e.tracer.Visible = false
+				end
+			end
+		else
+			clearEntry(plr)
+		end
+	end
+end)
+
+Players.PlayerRemoving:Connect(clearEntry)
+LocalPlayer.CharacterAdded:Connect(function(char)
+	task.wait(0.2)
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		baseWalkSpeed = hum.WalkSpeed
+	end
+	applyWalkSpeed()
+	if flag("play_fly", false) then
+		startFly()
+	end
+end)
+
+------------------------------------------------------------------------
+-- UI
+------------------------------------------------------------------------
+
+hub:beginUpdate()
+
+local visuals = hub:addTab("Visuals")
+local playerTab = hub:addTab("Player")
+local world = hub:addTab("World")
+local misc = hub:addTab("Misc")
+
+local esp = hub:addGroup(visuals, "ESP")
+local tracersG = hub:addGroup(visuals, "Tracers")
+
+hub:addToggle(esp, "enabled", "play_esp_on", true)
+hub:addToggle(esp, "team check", "play_team_check", true)
+hub:addToggle(esp, "boxes", "play_esp_box", true)
+hub:addToggle(esp, "names", "play_esp_names", true)
+hub:addToggle(esp, "distance", "play_esp_dist", true)
+hub:addColorPicker(esp, "color", "play_esp_color", Color3.fromRGB(118, 100, 200))
+hub:addSlider(esp, "maxdistance", "play_maxdistance", 100, 5000, 50, 2500)
+
+hub:addToggle(tracersG, "tracers", "play_esp_tracers", true)
+hub:addToggle(tracersG, "from bottom", "play_tracer_bottom", true)
+
+local move = hub:addGroup(playerTab, "Movement")
+local cam = hub:addGroup(playerTab, "Camera")
+
+hub:addToggle(move, "speed", "play_speed_on", false, function()
+	applyWalkSpeed()
+end)
+hub:addSlider(move, "walkspeed", "play_walkspeed", 16, 120, 1, 28, function()
+	applyWalkSpeed()
+end)
+hub:addToggle(move, "fly", "play_fly", false, function(on)
+	if on then
+		startFly()
+	else
+		stopFly()
+	end
+end)
+hub:addSlider(move, "fly speed", "play_flyspeed", 10, 200, 5, 50)
+
+hub:addSlider(cam, "fov", "play_cam_fov", 50, 120, 1, 70, function()
+	applyCameraFov()
+end)
+
+local lightingG = hub:addGroup(world, "Lighting")
+hub:addToggle(lightingG, "fullbright", "play_fullbright", false, function(on)
+	applyFullbright(on)
+	if not on then
+		applyFog()
+	end
+end)
+hub:addSlider(lightingG, "fog", "play_fog", 0, 100, 1, 40, function()
+	applyFog()
+end)
+hub:addButton(lightingG, "reset lighting", function()
+	hub:set("play_fullbright", false)
+	hub:set("play_fog", 40)
+	applyFullbright(false)
+	applyFog()
+end)
+
+local session = hub:addGroup(misc, "Session")
+hub:addButton(session, "destroy", function()
+	hub:Destroy()
+end)
+
+hub:endUpdate()
+
+-- sync once
+applyWalkSpeed()
+applyCameraFov()
+applyFog()
+
+local oldDestroy = hub.Destroy
+function hub:Destroy()
+	renderConn:Disconnect()
+	stopFly()
+	applyFullbright(false)
+	for plr in pairs(entries) do
+		clearEntry(plr)
+	end
+	folder:Destroy()
+	oldDestroy(self)
+end
+
+print("[MawyxxHub] Play demo ready — RightControl | ESP/tracers/speed/fly/fullbright")
