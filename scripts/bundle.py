@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bundle src/MawyxxHub into dist/ for HttpGet + loadstring."""
+"""Bundle src/MawyxxHub → dist/MawyxxHub.lua (main) + dist/demo.lua (optional)."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "src" / "MawyxxHub"
-OUT = Path(__file__).resolve().parent.parent / "dist" / "MawyxxHub.lua"
-# Current single-file demo (bump when HttpGet cache must be busted)
-RUN_NAME = "___RUN_UI_V19.lua"
+DIST = Path(__file__).resolve().parent.parent / "dist"
+OUT = DIST / "MawyxxHub.lua"
+DEMO_OUT = DIST / "demo.lua"
 
 REQUIRE_RE = re.compile(r"require\((script(?:\.[A-Za-z_][A-Za-z0-9_]*)+)\)")
 
@@ -24,8 +24,7 @@ def module_id(path: Path) -> str:
 def dir_parts(mid: str) -> list[str]:
     if mid == "init":
         return []
-    parts = mid.split("/")
-    return parts[:-1]
+    return mid.split("/")[:-1]
 
 
 def resolve(mid: str, expr: str) -> str:
@@ -42,18 +41,15 @@ def resolve(mid: str, expr: str) -> str:
         else:
             cursor.append(t)
 
-    resolved = "/".join(cursor)
-    resolved = resolved.removesuffix("/__mod__")
-    if resolved == "__mod__" or resolved == "":
+    resolved = "/".join(cursor).removesuffix("/__mod__")
+    if resolved in ("__mod__", ""):
         resolved = "init"
     return resolved
 
 
 def rewrite(mid: str, src: str) -> str:
     def repl(m: re.Match[str]) -> str:
-        expr = m.group(1)
-        rid = resolve(mid, expr)
-        return f'__require("{rid}")'
+        return f'__require("{resolve(mid, m.group(1))}")'
 
     return REQUIRE_RE.sub(repl, src)
 
@@ -61,7 +57,7 @@ def rewrite(mid: str, src: str) -> str:
 def main() -> None:
     files = sorted(ROOT.rglob("*.lua"))
     parts: list[str] = [
-        "-- MawyxxHub bundled for HttpGet/loadstring. Auto-generated; do not edit.",
+        "-- MawyxxHub — main framework bundle. Auto-generated; do not edit.",
         "local __modules = {}",
         "local __loaded = {}",
         "local function __require(id)",
@@ -78,8 +74,7 @@ def main() -> None:
     leftover = 0
     for f in files:
         mid = module_id(f)
-        src = f.read_text(encoding="utf-8")
-        src = rewrite(mid, src)
+        src = rewrite(mid, f.read_text(encoding="utf-8"))
         if "require(script" in src:
             leftover += 1
             print("WARN leftover require(script in", mid)
@@ -92,25 +87,30 @@ def main() -> None:
     parts.append('return __require("init")')
     parts.append("")
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
+    DIST.mkdir(parents=True, exist_ok=True)
     text = "\n".join(parts)
     OUT.write_text(text, encoding="utf-8", newline="\n")
-    # Keep one alt name for docs that still reference .bundle.lua
-    (OUT.parent / "MawyxxHub.bundle.lua").write_text(text, encoding="utf-8", newline="\n")
 
     demo_path = Path(__file__).resolve().parent.parent / "examples" / "demo_inline.lua"
-    demo = demo_path.read_text(encoding="utf-8")
     run_parts = parts[:-2]
     run_parts.append("")
-    run_parts.append("-- ===== INLINE DEMO =====")
-    for line in demo.splitlines():
-        run_parts.append(line)
+    run_parts.append("-- ===== DEMO =====")
+    run_parts.extend(demo_path.read_text(encoding="utf-8").splitlines())
     run_parts.append("")
-    run_text = "\n".join(run_parts)
-    run_out = OUT.parent / RUN_NAME
-    run_out.write_text(run_text, encoding="utf-8", newline="\n")
+    DEMO_OUT.write_text("\n".join(run_parts), encoding="utf-8", newline="\n")
+
+    # Drop legacy versioned / alias files if present
+    for stale in DIST.glob("___RUN*"):
+        stale.unlink()
+        print("removed", stale.name)
+    for stale_name in ("MawyxxHub.bundle.lua", "MawyxxHub.hsv.lua"):
+        p = DIST / stale_name
+        if p.exists():
+            p.unlink()
+            print("removed", stale_name)
+
     print(f"Wrote {OUT} ({OUT.stat().st_size} bytes, {len(files)} modules, leftover={leftover})")
-    print(f"Wrote {run_out} ({run_out.stat().st_size} bytes)")
+    print(f"Wrote {DEMO_OUT} ({DEMO_OUT.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":

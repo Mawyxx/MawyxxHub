@@ -1,1 +1,5 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/___RUN_UI_V19.lua"))()
+-- Framework-only usage for your scripts:
+--   local MawyxxHub = loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua"))()
+--
+-- Full demo (optional):
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo.lua"))()

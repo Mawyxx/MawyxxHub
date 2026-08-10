@@ -1,6 +1,6 @@
 -- Inline demo body (appended by bundle into dist runner). No HttpGet.
 
-print("[MawyxxHub] BUILD=UI_V19_SINGLEFILE")
+print("[MawyxxHub] demo ready")
 
 local MawyxxHub = __require("init")
 assert(type(MawyxxHub) == "table" and MawyxxHub.new, "[MawyxxHub] init failed")
@@ -110,4 +110,4 @@ end)
 
 hub:endUpdate()
 
-print("[MawyxxHub] Demo ready — RightControl — click color square for HSV picker")
+print("[MawyxxHub] Demo ready — RightControl")

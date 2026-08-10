@@ -1,4 +1,4 @@
--- MawyxxHub bundled for HttpGet/loadstring. Auto-generated; do not edit.
+-- MawyxxHub — main framework bundle. Auto-generated; do not edit.
 local __modules = {}
 local __loaded = {}
 local function __require(id)
@@ -225,6 +225,7 @@ __modules["contracts/Ports"] = function(__require)
 	
 		IInputService:
 		  GetMouseLocation() -> Vector2
+		  GetMouseLocationGui() -> Vector2  (AbsolutePosition space)
 		  InputBegan, InputChanged, InputEnded : RBXScriptSignal
 	
 		IGuiHost:
@@ -240,6 +241,7 @@ __modules["contracts/Ports"] = function(__require)
 		ISettingsStore:
 		  Bind(key) -> table
 		  Get(store, flag) / Set(store, flag, value)
+		  Session-scoped by default (_G); swap adapter for persistence.
 	]]
 	
 	return {
