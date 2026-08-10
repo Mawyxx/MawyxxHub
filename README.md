@@ -81,6 +81,8 @@ hub:Destroy()
 
 `addToggleColor(group, label, flag, colorFlag, defaultOn?, defaultColor?, callback?, colorCallback?)` — toggle + color square on one row. Misplaced `Color3` / function args are normalized so they are not written into settings as the wrong type.
 
+`addSlider(group, label, flag, min, max, default, step?, callback?)` — **step is optional, default `1`**. You choose the step; it is never auto-derived from the range. Example: `addSlider(g, "maxdistance", "md", 0, 5000, 2500)` or `addSlider(g, "md", "md", 0, 5000, 2500, 10)`.
+
 ---
 
 ## Config (optional)

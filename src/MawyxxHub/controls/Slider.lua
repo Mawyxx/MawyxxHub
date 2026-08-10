@@ -12,7 +12,10 @@ function Slider.build(hub, element)
 	local flag = element.flag
 	local min = element.min or 0
 	local max = element.max or 100
-	local step = element.step or 1
+	local step = element.step
+	if type(step) ~= "number" or step <= 0 then
+		step = 1
+	end
 	local val = hub.settings[flag]
 	if type(val) ~= "number" then
 		val = element.default
@@ -21,6 +24,8 @@ function Slider.build(hub, element)
 		val = min
 	end
 	val = math.clamp(val, min, max)
+	-- Snap once to the caller-defined step (default 1)
+	val = math.clamp(math.round(val / step) * step, min, max)
 	hub.deps.settings.Set(hub.settings, flag, val)
 
 	local row = Create("Frame", {

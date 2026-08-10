@@ -15,7 +15,7 @@ local rage = hub:addGroup(combat, "Rage")
 local esp = hub:addGroup(visuals, "ESP")
 
 hub:addToggle(aim, "Enabled", "aim_enabled", false)
-hub:addSlider(aim, "FOV", "aim_fov", 10, 120, 1, 60)
+hub:addSlider(aim, "FOV", "aim_fov", 10, 120, 60)
 hub:addDropdown(aim, "Mode", "aim_mode", { "Closest", "Lowest HP", "FOV" }, "Closest")
 
 hub:addToggle(rage, "Auto fire", "rage_autofire", false)

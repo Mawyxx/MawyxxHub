@@ -34,17 +34,17 @@ local guns = hub:addGroup(combat, "Weapons")
 local rage = hub:addGroup(combat, "Rage")
 
 hub:addToggle(aim, "Enabled", "demo_aim_on", false)
-hub:addSlider(aim, "FOV", "demo_aim_fov", 10, 180, 1, 75)
+hub:addSlider(aim, "FOV", "demo_aim_fov", 10, 180, 75)
 hub:addDropdown(aim, "Target", "demo_aim_target", { "Closest", "Lowest HP", "Crosshair" }, "Closest")
 hub:addColorPicker(aim, "FOV color", "demo_aim_color", Color3.fromRGB(117, 72, 255))
 
 hub:addToggle(guns, "No recoil", "demo_norecoil", true)
-hub:addSlider(guns, "Spread", "demo_spread", 0, 100, 1, 20)
+hub:addSlider(guns, "Spread", "demo_spread", 0, 100, 20)
 hub:addButton(guns, "Reload config", function() end)
 
 hub:addToggle(rage, "Auto fire", "demo_autofire", false)
 hub:addToggle(rage, "Silent", "demo_silent", false)
-hub:addSlider(rage, "Hit chance", "demo_hitchance", 0, 100, 5, 80)
+hub:addSlider(rage, "Hit chance", "demo_hitchance", 0, 100, 80, 5)
 
 local esp = hub:addGroup(visuals, "ESP")
 local world = hub:addGroup(visuals, "World")
@@ -55,7 +55,7 @@ hub:addToggleColor(esp, "Tracers", "demo_esp_tracers", "demo_esp_tracers_color",
 hub:addDropdown(esp, "Box style", "demo_esp_style", { "Full", "Corner", "3D" }, "Corner")
 
 hub:addToggle(world, "Fullbright", "demo_fullbright", false)
-hub:addSlider(world, "Fog", "demo_fog", 0, 100, 1, 40)
+hub:addSlider(world, "Fog", "demo_fog", 0, 100, 40)
 hub:addButton(world, "Reset lighting", function()
 	hub:set("demo_fog", 40)
 	hub:set("demo_fullbright", false)
@@ -65,11 +65,11 @@ local move = hub:addGroup(player, "Movement")
 local cam = hub:addGroup(player, "Camera")
 
 hub:addToggle(move, "Speed", "demo_speed_on", false)
-hub:addSlider(move, "WalkSpeed", "demo_walkspeed", 16, 120, 1, 16)
+hub:addSlider(move, "WalkSpeed", "demo_walkspeed", 16, 120, 16)
 hub:addToggle(move, "Fly", "demo_fly", false)
-hub:addSlider(move, "Fly speed", "demo_flyspeed", 10, 200, 5, 50)
+hub:addSlider(move, "Fly speed", "demo_flyspeed", 10, 200, 50, 5)
 
-hub:addSlider(cam, "FOV", "demo_cam_fov", 50, 120, 1, 70)
+hub:addSlider(cam, "FOV", "demo_cam_fov", 50, 120, 70)
 hub:addToggle(cam, "Third person", "demo_thirdperson", false)
 
 local ui = hub:addGroup(misc, "UI")

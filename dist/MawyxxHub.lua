@@ -1000,7 +1000,10 @@ __modules["controls/Slider"] = function(__require)
 		local flag = element.flag
 		local min = element.min or 0
 		local max = element.max or 100
-		local step = element.step or 1
+		local step = element.step
+		if type(step) ~= "number" or step <= 0 then
+			step = 1
+		end
 		local val = hub.settings[flag]
 		if type(val) ~= "number" then
 			val = element.default
@@ -1009,6 +1012,8 @@ __modules["controls/Slider"] = function(__require)
 			val = min
 		end
 		val = math.clamp(val, min, max)
+		-- Snap once to the caller-defined step (default 1)
+		val = math.clamp(math.round(val / step) * step, min, max)
 		hub.deps.settings.Set(hub.settings, flag, val)
 	
 		local row = Create("Frame", {
@@ -1599,23 +1604,38 @@ __modules["hub/MawyxxHub"] = function(__require)
 		return appendControl(self, group, el)
 	end
 	
-	function MawyxxHub:addSlider(group, label, flag, min, max, step, default, callback)
+	--- Slider. Step is explicit (default 1) — never derived from range.
+	-- addSlider(group, label, flag, min, max, default, step?, callback?)
+	function MawyxxHub:addSlider(group, label, flag, min, max, default, step, callback)
 		Validate.label(label)
 		Validate.flag(flag)
 		min = min or 0
 		max = max or 100
-		step = step or 1
-		Validate.sliderRange(min, max, step)
+	
+		-- Allow omitting step: (..., default, callback)
+		if type(step) == "function" then
+			callback = step
+			step = 1
+		end
 		if type(default) == "function" then
 			callback = default
 			default = min
+			step = 1
 		end
 		if type(default) ~= "number" then
 			default = min
 		end
+		-- Step must be a positive number the caller chose; fallback is 1 (smooth)
+		if type(step) ~= "number" or step <= 0 then
+			step = 1
+		end
 		if type(callback) ~= "function" then
 			callback = nil
 		end
+	
+		Validate.sliderRange(min, max, step)
+		default = math.clamp(default, min, max)
+	
 		return appendControl(self, group, {
 			type = "slider",
 			label = label,

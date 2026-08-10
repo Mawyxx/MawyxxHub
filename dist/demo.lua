@@ -1000,7 +1000,10 @@ __modules["controls/Slider"] = function(__require)
 		local flag = element.flag
 		local min = element.min or 0
 		local max = element.max or 100
-		local step = element.step or 1
+		local step = element.step
+		if type(step) ~= "number" or step <= 0 then
+			step = 1
+		end
 		local val = hub.settings[flag]
 		if type(val) ~= "number" then
 			val = element.default
@@ -1009,6 +1012,8 @@ __modules["controls/Slider"] = function(__require)
 			val = min
 		end
 		val = math.clamp(val, min, max)
+		-- Snap once to the caller-defined step (default 1)
+		val = math.clamp(math.round(val / step) * step, min, max)
 		hub.deps.settings.Set(hub.settings, flag, val)
 	
 		local row = Create("Frame", {
@@ -1599,23 +1604,38 @@ __modules["hub/MawyxxHub"] = function(__require)
 		return appendControl(self, group, el)
 	end
 	
-	function MawyxxHub:addSlider(group, label, flag, min, max, step, default, callback)
+	--- Slider. Step is explicit (default 1) — never derived from range.
+	-- addSlider(group, label, flag, min, max, default, step?, callback?)
+	function MawyxxHub:addSlider(group, label, flag, min, max, default, step, callback)
 		Validate.label(label)
 		Validate.flag(flag)
 		min = min or 0
 		max = max or 100
-		step = step or 1
-		Validate.sliderRange(min, max, step)
+	
+		-- Allow omitting step: (..., default, callback)
+		if type(step) == "function" then
+			callback = step
+			step = 1
+		end
 		if type(default) == "function" then
 			callback = default
 			default = min
+			step = 1
 		end
 		if type(default) ~= "number" then
 			default = min
 		end
+		-- Step must be a positive number the caller chose; fallback is 1 (smooth)
+		if type(step) ~= "number" or step <= 0 then
+			step = 1
+		end
 		if type(callback) ~= "function" then
 			callback = nil
 		end
+	
+		Validate.sliderRange(min, max, step)
+		default = math.clamp(default, min, max)
+	
 		return appendControl(self, group, {
 			type = "slider",
 			label = label,
@@ -3175,17 +3195,17 @@ local guns = hub:addGroup(combat, "Weapons")
 local rage = hub:addGroup(combat, "Rage")
 
 hub:addToggle(aim, "Enabled", "demo_aim_on", false)
-hub:addSlider(aim, "FOV", "demo_aim_fov", 10, 180, 1, 75)
+hub:addSlider(aim, "FOV", "demo_aim_fov", 10, 180, 75)
 hub:addDropdown(aim, "Target", "demo_aim_target", { "Closest", "Lowest HP", "Crosshair" }, "Closest")
 hub:addColorPicker(aim, "FOV color", "demo_aim_color", Color3.fromRGB(117, 72, 255))
 
 hub:addToggle(guns, "No recoil", "demo_norecoil", true)
-hub:addSlider(guns, "Spread", "demo_spread", 0, 100, 1, 20)
+hub:addSlider(guns, "Spread", "demo_spread", 0, 100, 20)
 hub:addButton(guns, "Reload config", function() end)
 
 hub:addToggle(rage, "Auto fire", "demo_autofire", false)
 hub:addToggle(rage, "Silent", "demo_silent", false)
-hub:addSlider(rage, "Hit chance", "demo_hitchance", 0, 100, 5, 80)
+hub:addSlider(rage, "Hit chance", "demo_hitchance", 0, 100, 80, 5)
 
 local esp = hub:addGroup(visuals, "ESP")
 local world = hub:addGroup(visuals, "World")
@@ -3196,7 +3216,7 @@ hub:addToggleColor(esp, "Tracers", "demo_esp_tracers", "demo_esp_tracers_color",
 hub:addDropdown(esp, "Box style", "demo_esp_style", { "Full", "Corner", "3D" }, "Corner")
 
 hub:addToggle(world, "Fullbright", "demo_fullbright", false)
-hub:addSlider(world, "Fog", "demo_fog", 0, 100, 1, 40)
+hub:addSlider(world, "Fog", "demo_fog", 0, 100, 40)
 hub:addButton(world, "Reset lighting", function()
 	hub:set("demo_fog", 40)
 	hub:set("demo_fullbright", false)
@@ -3206,11 +3226,11 @@ local move = hub:addGroup(player, "Movement")
 local cam = hub:addGroup(player, "Camera")
 
 hub:addToggle(move, "Speed", "demo_speed_on", false)
-hub:addSlider(move, "WalkSpeed", "demo_walkspeed", 16, 120, 1, 16)
+hub:addSlider(move, "WalkSpeed", "demo_walkspeed", 16, 120, 16)
 hub:addToggle(move, "Fly", "demo_fly", false)
-hub:addSlider(move, "Fly speed", "demo_flyspeed", 10, 200, 5, 50)
+hub:addSlider(move, "Fly speed", "demo_flyspeed", 10, 200, 50, 5)
 
-hub:addSlider(cam, "FOV", "demo_cam_fov", 50, 120, 1, 70)
+hub:addSlider(cam, "FOV", "demo_cam_fov", 50, 120, 70)
 hub:addToggle(cam, "Third person", "demo_thirdperson", false)
 
 local ui = hub:addGroup(misc, "UI")

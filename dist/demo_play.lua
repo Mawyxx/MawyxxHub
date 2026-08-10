@@ -1000,7 +1000,10 @@ __modules["controls/Slider"] = function(__require)
 		local flag = element.flag
 		local min = element.min or 0
 		local max = element.max or 100
-		local step = element.step or 1
+		local step = element.step
+		if type(step) ~= "number" or step <= 0 then
+			step = 1
+		end
 		local val = hub.settings[flag]
 		if type(val) ~= "number" then
 			val = element.default
@@ -1009,6 +1012,8 @@ __modules["controls/Slider"] = function(__require)
 			val = min
 		end
 		val = math.clamp(val, min, max)
+		-- Snap once to the caller-defined step (default 1)
+		val = math.clamp(math.round(val / step) * step, min, max)
 		hub.deps.settings.Set(hub.settings, flag, val)
 	
 		local row = Create("Frame", {
@@ -1599,23 +1604,38 @@ __modules["hub/MawyxxHub"] = function(__require)
 		return appendControl(self, group, el)
 	end
 	
-	function MawyxxHub:addSlider(group, label, flag, min, max, step, default, callback)
+	--- Slider. Step is explicit (default 1) — never derived from range.
+	-- addSlider(group, label, flag, min, max, default, step?, callback?)
+	function MawyxxHub:addSlider(group, label, flag, min, max, default, step, callback)
 		Validate.label(label)
 		Validate.flag(flag)
 		min = min or 0
 		max = max or 100
-		step = step or 1
-		Validate.sliderRange(min, max, step)
+	
+		-- Allow omitting step: (..., default, callback)
+		if type(step) == "function" then
+			callback = step
+			step = 1
+		end
 		if type(default) == "function" then
 			callback = default
 			default = min
+			step = 1
 		end
 		if type(default) ~= "number" then
 			default = min
 		end
+		-- Step must be a positive number the caller chose; fallback is 1 (smooth)
+		if type(step) ~= "number" or step <= 0 then
+			step = 1
+		end
 		if type(callback) ~= "function" then
 			callback = nil
 		end
+	
+		Validate.sliderRange(min, max, step)
+		default = math.clamp(default, min, max)
+	
 		return appendControl(self, group, {
 			type = "slider",
 			label = label,
@@ -3670,7 +3690,7 @@ hub:addToggle(esp, "team check", "play_team_check", true)
 hub:addToggleColor(esp, "name", "play_esp_names", "play_esp_names_color", true, Color3.new(1, 1, 1))
 hub:addToggleColor(esp, "distance", "play_esp_dist", "play_esp_dist_color", true, Color3.fromRGB(200, 200, 200))
 hub:addToggleColor(esp, "chams", "play_esp_box", "play_esp_chams_color", true, Color3.fromRGB(80, 200, 120))
-hub:addSlider(esp, "maxdistance", "play_maxdistance", 100, 5000, 50, 2500)
+hub:addSlider(esp, "maxdistance", "play_maxdistance", 0, 5000, 2500, 1)
 
 hub:addToggleColor(tracersG, "tracers", "play_esp_tracers", "play_esp_tracers_color", true, Color3.fromRGB(118, 100, 200))
 hub:addToggle(tracersG, "from bottom", "play_tracer_bottom", false)
@@ -3681,7 +3701,7 @@ local cam = hub:addGroup(playerTab, "Camera")
 hub:addToggle(move, "speed", "play_speed_on", false, function()
 	applyWalkSpeed()
 end)
-hub:addSlider(move, "walkspeed", "play_walkspeed", 16, 120, 1, 28, function()
+hub:addSlider(move, "walkspeed", "play_walkspeed", 16, 120, 28, 1, function()
 	applyWalkSpeed()
 end)
 hub:addToggle(move, "fly", "play_fly", false, function(on)
@@ -3691,9 +3711,9 @@ hub:addToggle(move, "fly", "play_fly", false, function(on)
 		stopFly()
 	end
 end)
-hub:addSlider(move, "fly speed", "play_flyspeed", 10, 200, 5, 50)
+hub:addSlider(move, "fly speed", "play_flyspeed", 10, 200, 50, 5)
 
-hub:addSlider(cam, "fov", "play_cam_fov", 50, 120, 1, 70, function()
+hub:addSlider(cam, "fov", "play_cam_fov", 50, 120, 70, 1, function()
 	applyCameraFov()
 end)
 hub:addToggle(cam, "stretch fov", "play_stretch", false, function()
@@ -3716,7 +3736,7 @@ hub:addToggle(lightingG, "fullbright", "play_fullbright", false, function(on)
 		applyFog()
 	end
 end)
-hub:addSlider(lightingG, "fog", "play_fog", 0, 100, 1, 40, function()
+hub:addSlider(lightingG, "fog", "play_fog", 0, 100, 40, 1, function()
 	applyFog()
 end)
 hub:addButton(lightingG, "reset lighting", function()
