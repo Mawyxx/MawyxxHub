@@ -83,6 +83,11 @@ hub:Destroy()
 
 `addSlider(group, label, flag, min, max, default, step?, callback?)` — **step is optional, default `1`**. You choose the step; it is never auto-derived from the range. Example: `addSlider(g, "maxdistance", "md", 0, 5000, 2500)` or `addSlider(g, "md", "md", 0, 5000, 2500, 10)`.
 
+### Keybinds (built-in, no script changes)
+
+Right-click any **toggle / toggle+color / button** → mini menu → **Press** or **Hold** → click the key field → press a key → **OK**.  
+A small key chip appears left of the switch. The glyph follows the **current keyboard layout** (`GetStringForKeyCode`). Binds work even when the hub is closed. Scripts keep using the same `callback` / `hub:get` — a bind is just a virtual click.
+
 ---
 
 ## Config (optional)

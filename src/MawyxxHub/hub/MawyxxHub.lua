@@ -11,6 +11,7 @@ local WindowBuild = require(script.Parent.Parent.window.Build)
 local Drag = require(script.Parent.Parent.window.Drag)
 local Shortcuts = require(script.Parent.Parent.window.Shortcuts)
 local CustomCursor = require(script.Parent.Parent.window.CustomCursor)
+local Binds = require(script.Parent.Parent.window.Binds)
 local Sidebar = require(script.Parent.Parent.navigation.Sidebar)
 local Pages = require(script.Parent.Parent.navigation.Pages)
 
@@ -66,6 +67,8 @@ function MawyxxHub.new(userConfig, deps)
 	self.activeTab = nil
 	self._destroyed = false
 	self._bindings = {}
+	self._bindTargets = {}
+	self._bindSeq = 0
 	self._batchDepth = 0
 	self._pendingRefresh = false
 	self._pendingSidebar = false
@@ -82,6 +85,7 @@ function MawyxxHub.new(userConfig, deps)
 	Drag.setup(self)
 	Shortcuts.setup(self)
 	CustomCursor.setup(self)
+	Binds.setup(self)
 	self:_renderSidebar()
 	return self
 end
@@ -257,10 +261,12 @@ end
 
 function MawyxxHub:addButton(group, label, callback)
 	Validate.label(label)
+	self._bindSeq = (self._bindSeq or 0) + 1
 	return appendControl(self, group, {
 		type = "button",
 		label = label,
 		callback = callback,
+		bindId = "__btn_" .. tostring(self._bindSeq),
 	})
 end
 

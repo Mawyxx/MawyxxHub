@@ -95,6 +95,20 @@ __modules["adapters/RobloxInput"] = function(__require)
 		UserInputService.MouseIconEnabled = enabled and true or false
 	end
 	
+	function RobloxInput.GetStringForKeyCode(keyCode)
+		if keyCode == nil then
+			return ""
+		end
+		local ok, s = pcall(function()
+			return UserInputService:GetStringForKeyCode(keyCode)
+		end)
+		if ok and type(s) == "string" and s ~= "" then
+			return s
+		end
+		local name = tostring(keyCode):gsub("Enum.KeyCode.", "")
+		return name
+	end
+	
 	RobloxInput.InputBegan = UserInputService.InputBegan
 	RobloxInput.InputChanged = UserInputService.InputChanged
 	RobloxInput.InputEnded = UserInputService.InputEnded
@@ -179,6 +193,12 @@ __modules["config/Defaults"] = function(__require)
 			placeholder = "Search",
 		},
 		startHidden = true,
+		binds = {
+			enabled = true,
+			-- Binds fire even when the hub window is closed
+			whenHidden = true,
+			defaultMode = "press", -- "press" | "hold"
+		},
 		group = {
 			columns = 2,
 			gap = 10,
@@ -239,6 +259,7 @@ __modules["contracts/Ports"] = function(__require)
 		  GetMouseLocation() -> Vector2
 		  GetMouseLocationGui() -> Vector2  (AbsolutePosition space)
 		  SetMouseIconEnabled(boolean)?
+		  GetStringForKeyCode(keyCode)? -> string  (layout-aware key glyph)
 		  InputBegan, InputChanged, InputEnded : RBXScriptSignal
 		  RenderStepped? : RBXScriptSignal
 	
@@ -265,6 +286,7 @@ end
 
 __modules["controls/Button"] = function(__require)
 	local CreateMod = __require("visual/Create")
+	local Binds = __require("window/Binds")
 	
 	local Create = CreateMod.Create
 	local Stroke = CreateMod.Stroke
@@ -295,17 +317,40 @@ __modules["controls/Button"] = function(__require)
 			AutoButtonColor = false,
 		})
 		Stroke(btn, config.colors.borderSoft, 1, 0.45)
+	
+		local function fire()
+			if element.callback then
+				element.callback()
+			end
+		end
+	
 		hub._pageMaid:Connect(btn.MouseEnter, function()
 			hub:tween(btn, { BackgroundColor3 = controlHover })
 		end)
 		hub._pageMaid:Connect(btn.MouseLeave, function()
 			hub:tween(btn, { BackgroundColor3 = control })
 		end)
-		hub._pageMaid:Connect(btn.MouseButton1Click, function()
-			if element.callback then
-				element.callback()
-			end
-		end)
+		hub._pageMaid:Connect(btn.MouseButton1Click, fire)
+	
+		local bindId = element.bindId
+		if type(bindId) ~= "string" or bindId == "" then
+			hub._bindSeq = (hub._bindSeq or 0) + 1
+			bindId = "__btn_" .. tostring(hub._bindSeq)
+			element.bindId = bindId
+		end
+	
+		Binds.attach(hub, {
+			bindId = bindId,
+			kind = "button",
+			title = element.label,
+			row = row,
+			badgeParent = btn,
+			badgeRightOffset = -6,
+			clickTargets = { row, btn },
+			firePress = fire,
+			fireHoldStart = fire,
+			fireHoldEnd = function() end,
+		})
 	
 		return row
 	end
@@ -1110,6 +1155,7 @@ end
 
 __modules["controls/Toggle"] = function(__require)
 	local CreateMod = __require("visual/Create")
+	local Binds = __require("window/Binds")
 	
 	local Create = CreateMod.Create
 	local Corner = CreateMod.Corner
@@ -1156,7 +1202,6 @@ __modules["controls/Toggle"] = function(__require)
 			PaddingRight = UDim.new(0, 4),
 		})
 		Corner(toggleBtn, 11)
-		-- Soft edge instead of hard stroke
 		Stroke(toggleBtn, config.colors.borderSoft, 1, 0.55)
 	
 		local knob = Create("Frame", {
@@ -1169,7 +1214,7 @@ __modules["controls/Toggle"] = function(__require)
 		})
 		Corner(knob, 20)
 	
-		local function apply(newState)
+		local function apply(newState, fireCallback)
 			state = newState and true or false
 			hub.deps.settings.Set(hub.settings, flag, state)
 			hub:tween(toggleBtn, {
@@ -1178,21 +1223,46 @@ __modules["controls/Toggle"] = function(__require)
 			hub:tween(knob, {
 				Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
 			})
+			if fireCallback and element.callback then
+				element.callback(state)
+			end
 		end
 	
 		hub._bindings[flag] = {
-			apply = apply,
+			apply = function(v)
+				apply(v, false)
+			end,
 			read = function()
 				return state
 			end,
 		}
 	
-		hub._pageMaid:Connect(toggleBtn.MouseButton1Click, function()
-			apply(not state)
-			if element.callback then
-				element.callback(state)
-			end
-		end)
+		local function clickToggle()
+			apply(not state, true)
+		end
+	
+		hub._pageMaid:Connect(toggleBtn.MouseButton1Click, clickToggle)
+	
+		Binds.attach(hub, {
+			bindId = flag,
+			kind = "toggle",
+			title = element.label,
+			row = row,
+			badgeParent = row,
+			badgeRightOffset = -56,
+			clickTargets = { row, toggleBtn, label },
+			firePress = clickToggle,
+			fireHoldStart = function()
+				if not state then
+					apply(true, true)
+				end
+			end,
+			fireHoldEnd = function()
+				if state then
+					apply(false, true)
+				end
+			end,
+		})
 	
 		return row
 	end
@@ -1205,6 +1275,7 @@ __modules["controls/ToggleColor"] = function(__require)
 	
 	local CreateMod = __require("visual/Create")
 	local ColorPicker = __require("controls/ColorPicker")
+	local Binds = __require("window/Binds")
 	
 	local Create = CreateMod.Create
 	local Corner = CreateMod.Corner
@@ -1238,7 +1309,7 @@ __modules["controls/ToggleColor"] = function(__require)
 		})
 	
 		local label = TextLabel(row, element.label, 14, config.colors.text, config.font)
-		label.Size = UDim2.new(1, -90, 1, 0)
+		label.Size = UDim2.new(1, -118, 1, 0)
 		label.TextXAlignment = Enum.TextXAlignment.Left
 	
 		local offColor = config.colors.control or config.colors.surface2
@@ -1287,7 +1358,7 @@ __modules["controls/ToggleColor"] = function(__require)
 			callback = element.colorCallback,
 		})
 	
-		local function apply(newState)
+		local function apply(newState, fireCallback)
 			state = newState and true or false
 			hub.deps.settings.Set(hub.settings, flag, state)
 			hub:tween(toggleBtn, {
@@ -1296,21 +1367,47 @@ __modules["controls/ToggleColor"] = function(__require)
 			hub:tween(knob, {
 				Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
 			})
+			if fireCallback and element.callback then
+				element.callback(state)
+			end
 		end
 	
 		hub._bindings[flag] = {
-			apply = apply,
+			apply = function(v)
+				apply(v, false)
+			end,
 			read = function()
 				return state
 			end,
 		}
 	
-		hub._pageMaid:Connect(toggleBtn.MouseButton1Click, function()
-			apply(not state)
-			if element.callback then
-				element.callback(state)
-			end
-		end)
+		local function clickToggle()
+			apply(not state, true)
+		end
+	
+		hub._pageMaid:Connect(toggleBtn.MouseButton1Click, clickToggle)
+	
+		-- Badge left of swatch+toggle: toggle(50)+gap+swatch(16)+gap+badge
+		Binds.attach(hub, {
+			bindId = flag,
+			kind = "toggle",
+			title = element.label,
+			row = row,
+			badgeParent = row,
+			badgeRightOffset = -86,
+			clickTargets = { row, toggleBtn, label },
+			firePress = clickToggle,
+			fireHoldStart = function()
+				if not state then
+					apply(true, true)
+				end
+			end,
+			fireHoldEnd = function()
+				if state then
+					apply(false, true)
+				end
+			end,
+		})
 	
 		return row
 	end
@@ -1364,6 +1461,12 @@ __modules["fakes/FakeInput"] = function(__require)
 			mouse = Vector2.new(x, y)
 		end
 		function api.SetMouseIconEnabled(_enabled) end
+		function api.GetStringForKeyCode(keyCode)
+			if keyCode == nil then
+				return ""
+			end
+			return tostring(keyCode):gsub("Enum.KeyCode.", "")
+		end
 		api.RenderStepped = makeSignal()
 		return api
 	end
@@ -1418,6 +1521,7 @@ __modules["hub/MawyxxHub"] = function(__require)
 	local Drag = __require("window/Drag")
 	local Shortcuts = __require("window/Shortcuts")
 	local CustomCursor = __require("window/CustomCursor")
+	local Binds = __require("window/Binds")
 	local Sidebar = __require("navigation/Sidebar")
 	local Pages = __require("navigation/Pages")
 	
@@ -1473,6 +1577,8 @@ __modules["hub/MawyxxHub"] = function(__require)
 		self.activeTab = nil
 		self._destroyed = false
 		self._bindings = {}
+		self._bindTargets = {}
+		self._bindSeq = 0
 		self._batchDepth = 0
 		self._pendingRefresh = false
 		self._pendingSidebar = false
@@ -1489,6 +1595,7 @@ __modules["hub/MawyxxHub"] = function(__require)
 		Drag.setup(self)
 		Shortcuts.setup(self)
 		CustomCursor.setup(self)
+		Binds.setup(self)
 		self:_renderSidebar()
 		return self
 	end
@@ -1664,10 +1771,12 @@ __modules["hub/MawyxxHub"] = function(__require)
 	
 	function MawyxxHub:addButton(group, label, callback)
 		Validate.label(label)
+		self._bindSeq = (self._bindSeq or 0) + 1
 		return appendControl(self, group, {
 			type = "button",
 			label = label,
 			callback = callback,
+			bindId = "__btn_" .. tostring(self._bindSeq),
 		})
 	end
 	
@@ -2217,6 +2326,7 @@ __modules["navigation/Pages"] = function(__require)
 	
 		hub._pageMaid:DoCleaning()
 		hub._bindings = {}
+		hub._bindTargets = {}
 	
 		for _, child in ipairs(hub.pageContainer:GetChildren()) do
 			child:Destroy()
@@ -2417,6 +2527,91 @@ __modules["navigation/Sidebar"] = function(__require)
 	return Sidebar
 end
 
+__modules["util/BindStore"] = function(__require)
+	-- Persistent keybind map inside hub.settings (no script API required).
+	
+	local STORE = "_mawyxx_binds"
+	
+	local BindStore = {}
+	
+	function BindStore.all(hub)
+		local t = hub.settings[STORE]
+		if type(t) ~= "table" then
+			t = {}
+			hub.deps.settings.Set(hub.settings, STORE, t)
+		end
+		return t
+	end
+	
+	function BindStore.get(hub, bindId)
+		local e = BindStore.all(hub)[bindId]
+		if type(e) ~= "table" or type(e.key) ~= "string" then
+			return nil
+		end
+		local mode = e.mode
+		if mode ~= "hold" then
+			mode = "press"
+		end
+		return { key = e.key, mode = mode }
+	end
+	
+	function BindStore.set(hub, bindId, keyName, mode)
+		if type(bindId) ~= "string" or bindId == "" then
+			return
+		end
+		if type(keyName) ~= "string" or keyName == "" then
+			return
+		end
+		if mode ~= "hold" then
+			mode = "press"
+		end
+		local all = BindStore.all(hub)
+		all[bindId] = { key = keyName, mode = mode }
+		hub.deps.settings.Set(hub.settings, STORE, all)
+	end
+	
+	function BindStore.clear(hub, bindId)
+		local all = BindStore.all(hub)
+		all[bindId] = nil
+		hub.deps.settings.Set(hub.settings, STORE, all)
+	end
+	
+	function BindStore.keyCode(keyName)
+		if type(keyName) ~= "string" then
+			return nil
+		end
+		local ok, code = pcall(function()
+			return Enum.KeyCode[keyName]
+		end)
+		if ok and typeof(code) == "EnumItem" then
+			return code
+		end
+		return nil
+	end
+	
+	function BindStore.keyName(keyCode)
+		if keyCode == nil then
+			return nil
+		end
+		return tostring(keyCode):gsub("Enum.KeyCode.", "")
+	end
+	
+	--- Find bindId that already uses this key (excluding exceptId).
+	function BindStore.findByKey(hub, keyName, exceptId)
+		if type(keyName) ~= "string" then
+			return nil
+		end
+		for id, e in pairs(BindStore.all(hub)) do
+			if id ~= exceptId and type(e) == "table" and e.key == keyName then
+				return id
+			end
+		end
+		return nil
+	end
+	
+	return BindStore
+end
+
 __modules["util/Errors"] = function(__require)
 	-- Explicit framework errors (PRIME-A10). rule_id in message for observability.
 	
@@ -2551,6 +2746,613 @@ __modules["visual/Create"] = function(__require)
 		Padding = Padding,
 		TextLabel = TextLabel,
 	}
+end
+
+__modules["window/BindMenu"] = function(__require)
+	-- RMB bind mini-menu: mode (press/hold) + listen for key + OK / Cancel / Clear.
+	
+	local CreateMod = __require("visual/Create")
+	local BindStore = __require("util/BindStore")
+	
+	local Create = CreateMod.Create
+	local Stroke = CreateMod.Stroke
+	local Corner = CreateMod.Corner
+	
+	local PANEL_W = 228
+	local PANEL_H = 168
+	
+	local BindMenu = {}
+	
+	local function bindsEnabled(hub)
+		local b = hub.config.binds
+		return b == nil or b.enabled ~= false
+	end
+	
+	function BindMenu.open(hub, opts)
+		if not bindsEnabled(hub) or hub._destroyed then
+			return
+		end
+		if hub._bindMenuClose then
+			hub._bindMenuClose()
+		end
+	
+		local config = hub.config
+		local input = hub.deps.input
+		local bindId = opts.bindId
+		local title = opts.title or "Bind"
+		local existing = BindStore.get(hub, bindId)
+	
+		local pendingKey = existing and existing.key or nil
+		local pendingMode = (existing and existing.mode) or ((config.binds and config.binds.defaultMode) or "press")
+		if pendingMode ~= "hold" then
+			pendingMode = "press"
+		end
+		local listening = false
+	
+		local overlayGui = Create("ScreenGui", {
+			Name = "MawyxxBindMenu",
+			Parent = hub.deps.guiHost.GetPlayerGui(),
+			ResetOnSpawn = false,
+			IgnoreGuiInset = true,
+			DisplayOrder = 100001,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		})
+	
+		local panel = Create("Frame", {
+			Parent = overlayGui,
+			Size = UDim2.fromOffset(PANEL_W, PANEL_H),
+			BackgroundColor3 = config.colors.surface,
+			BorderSizePixel = 0,
+			Active = true,
+			ZIndex = 20,
+		})
+		Stroke(panel, config.colors.border, 1)
+		Corner(panel, 6)
+	
+		local function place()
+			local anchor = opts.anchor
+			local x, y = 40, 40
+			if anchor and anchor.AbsolutePosition then
+				local pos = anchor.AbsolutePosition
+				local size = anchor.AbsoluteSize
+				x = pos.X + size.X - PANEL_W
+				y = pos.Y + size.Y + 6
+			end
+			local cam = workspace.CurrentCamera
+			local view = cam and cam.ViewportSize or Vector2.new(1920, 1080)
+			x = math.clamp(x, 8, math.max(8, view.X - PANEL_W - 8))
+			y = math.clamp(y, 8, math.max(8, view.Y - PANEL_H - 8))
+			panel.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
+		end
+		place()
+	
+		Create("TextLabel", {
+			Parent = panel,
+			Position = UDim2.fromOffset(12, 10),
+			Size = UDim2.new(1, -24, 0, 16),
+			BackgroundTransparency = 1,
+			Text = title,
+			TextColor3 = config.colors.text,
+			TextSize = 13,
+			Font = config.font,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			ZIndex = 21,
+		})
+	
+		local keyBtn = Create("TextButton", {
+			Parent = panel,
+			Position = UDim2.fromOffset(12, 34),
+			Size = UDim2.new(1, -24, 0, 28),
+			BackgroundColor3 = config.colors.control,
+			BorderSizePixel = 0,
+			Text = pendingKey or "Click, then press a key",
+			TextColor3 = config.colors.textSoft,
+			TextSize = 13,
+			Font = config.font,
+			AutoButtonColor = false,
+			ZIndex = 21,
+		})
+		Stroke(keyBtn, config.colors.borderSoft, 1, 0.4)
+		Corner(keyBtn, 4)
+	
+		local function refreshKeyLabel()
+			if listening then
+				keyBtn.Text = "Listening..."
+				keyBtn.TextColor3 = config.colors.purple
+				return
+			end
+			if pendingKey then
+				local code = BindStore.keyCode(pendingKey)
+				local shown = code and input.GetStringForKeyCode and input.GetStringForKeyCode(code) or pendingKey
+				if type(shown) ~= "string" or shown == "" then
+					shown = pendingKey
+				end
+				keyBtn.Text = string.upper(shown)
+				keyBtn.TextColor3 = config.colors.text
+			else
+				keyBtn.Text = "Click, then press a key"
+				keyBtn.TextColor3 = config.colors.textSoft
+			end
+		end
+	
+		local modePress = Create("TextButton", {
+			Parent = panel,
+			Position = UDim2.fromOffset(12, 72),
+			Size = UDim2.fromOffset(98, 26),
+			BackgroundColor3 = config.colors.control,
+			BorderSizePixel = 0,
+			Text = "Press",
+			TextColor3 = config.colors.textSoft,
+			TextSize = 12,
+			Font = config.font,
+			AutoButtonColor = false,
+			ZIndex = 21,
+		})
+		Corner(modePress, 4)
+		Stroke(modePress, config.colors.borderSoft, 1, 0.45)
+	
+		local modeHold = Create("TextButton", {
+			Parent = panel,
+			Position = UDim2.fromOffset(118, 72),
+			Size = UDim2.fromOffset(98, 26),
+			BackgroundColor3 = config.colors.control,
+			BorderSizePixel = 0,
+			Text = "Hold",
+			TextColor3 = config.colors.textSoft,
+			TextSize = 12,
+			Font = config.font,
+			AutoButtonColor = false,
+			ZIndex = 21,
+		})
+		Corner(modeHold, 4)
+		Stroke(modeHold, config.colors.borderSoft, 1, 0.45)
+	
+		local function refreshModes()
+			local on = config.colors.purple
+			local off = config.colors.control
+			local onT = config.colors.white
+			local offT = config.colors.textSoft
+			modePress.BackgroundColor3 = pendingMode == "press" and on or off
+			modePress.TextColor3 = pendingMode == "press" and onT or offT
+			modeHold.BackgroundColor3 = pendingMode == "hold" and on or off
+			modeHold.TextColor3 = pendingMode == "hold" and onT or offT
+		end
+		refreshModes()
+		refreshKeyLabel()
+	
+		local clearBtn = Create("TextButton", {
+			Parent = panel,
+			Position = UDim2.fromOffset(12, 108),
+			Size = UDim2.fromOffset(60, 26),
+			BackgroundColor3 = config.colors.control,
+			BorderSizePixel = 0,
+			Text = "Clear",
+			TextColor3 = config.colors.textSoft,
+			TextSize = 12,
+			Font = config.font,
+			AutoButtonColor = false,
+			ZIndex = 21,
+		})
+		Corner(clearBtn, 4)
+		Stroke(clearBtn, config.colors.borderSoft, 1, 0.45)
+	
+		local cancelBtn = Create("TextButton", {
+			Parent = panel,
+			Position = UDim2.fromOffset(80, 108),
+			Size = UDim2.fromOffset(64, 26),
+			BackgroundColor3 = config.colors.control,
+			BorderSizePixel = 0,
+			Text = "Cancel",
+			TextColor3 = config.colors.textSoft,
+			TextSize = 12,
+			Font = config.font,
+			AutoButtonColor = false,
+			ZIndex = 21,
+		})
+		Corner(cancelBtn, 4)
+		Stroke(cancelBtn, config.colors.borderSoft, 1, 0.45)
+	
+		local okBtn = Create("TextButton", {
+			Parent = panel,
+			Position = UDim2.fromOffset(152, 108),
+			Size = UDim2.fromOffset(64, 26),
+			BackgroundColor3 = config.colors.purpleDark,
+			BorderSizePixel = 0,
+			Text = "OK",
+			TextColor3 = config.colors.white,
+			TextSize = 12,
+			Font = config.font,
+			AutoButtonColor = false,
+			ZIndex = 21,
+		})
+		Corner(okBtn, 4)
+		Stroke(okBtn, config.colors.purple, 1)
+	
+		Create("TextLabel", {
+			Parent = panel,
+			Position = UDim2.fromOffset(12, 140),
+			Size = UDim2.new(1, -24, 0, 18),
+			BackgroundTransparency = 1,
+			Text = "Right-click controls to bind",
+			TextColor3 = config.colors.textMuted,
+			TextSize = 10,
+			Font = config.font,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 21,
+		})
+	
+		local conns = {}
+		local function disconnectAll()
+			for _, c in ipairs(conns) do
+				pcall(function()
+					c:Disconnect()
+				end)
+			end
+			conns = {}
+		end
+	
+		local function close()
+			hub._bindMenuOpen = false
+			hub._bindMenuClose = nil
+			disconnectAll()
+			if overlayGui.Parent then
+				overlayGui:Destroy()
+			end
+		end
+		hub._bindMenuOpen = true
+		hub._bindMenuClose = close
+		hub._maid:Give(overlayGui)
+	
+		local function isForbidden(keyCode)
+			local toggleKey = hub.config.toggleKey or Enum.KeyCode.RightControl
+			if keyCode == toggleKey then
+				return true
+			end
+			if keyCode == Enum.KeyCode.Unknown or keyCode == Enum.KeyCode.Escape then
+				return true
+			end
+			return false
+		end
+	
+		table.insert(conns, keyBtn.MouseButton1Click:Connect(function()
+			listening = true
+			refreshKeyLabel()
+		end))
+	
+		table.insert(conns, modePress.MouseButton1Click:Connect(function()
+			pendingMode = "press"
+			refreshModes()
+		end))
+		table.insert(conns, modeHold.MouseButton1Click:Connect(function()
+			pendingMode = "hold"
+			refreshModes()
+		end))
+	
+		table.insert(conns, clearBtn.MouseButton1Click:Connect(function()
+			BindStore.clear(hub, bindId)
+			if opts.onChanged then
+				opts.onChanged()
+			end
+			close()
+		end))
+		table.insert(conns, cancelBtn.MouseButton1Click:Connect(function()
+			close()
+		end))
+		table.insert(conns, okBtn.MouseButton1Click:Connect(function()
+			if pendingKey then
+				local other = BindStore.findByKey(hub, pendingKey, bindId)
+				if other then
+					BindStore.clear(hub, other)
+				end
+				BindStore.set(hub, bindId, pendingKey, pendingMode)
+			else
+				BindStore.clear(hub, bindId)
+			end
+			if opts.onChanged then
+				opts.onChanged()
+			end
+			close()
+		end))
+	
+		table.insert(conns, input.InputBegan:Connect(function(inp, gameProcessed)
+			if not listening then
+				return
+			end
+			if inp.UserInputType ~= Enum.UserInputType.Keyboard then
+				return
+			end
+			local keyCode = inp.KeyCode
+			if keyCode == Enum.KeyCode.Escape then
+				listening = false
+				refreshKeyLabel()
+				return
+			end
+			if isForbidden(keyCode) then
+				return
+			end
+			pendingKey = BindStore.keyName(keyCode)
+			listening = false
+			refreshKeyLabel()
+		end))
+	
+		return close
+	end
+	
+	return BindMenu
+end
+
+__modules["window/Binds"] = function(__require)
+	-- Global keybinds: press/hold → same as clicking the control. Layout-aware badge text.
+	
+	local CreateMod = __require("visual/Create")
+	local BindStore = __require("util/BindStore")
+	local BindMenu = __require("window/BindMenu")
+	
+	local Create = CreateMod.Create
+	local Stroke = CreateMod.Stroke
+	local Corner = CreateMod.Corner
+	
+	local Binds = {}
+	
+	local function bindsCfg(hub)
+		return hub.config.binds or {}
+	end
+	
+	local function bindsEnabled(hub)
+		return bindsCfg(hub).enabled ~= false
+	end
+	
+	local function displayForKey(hub, keyName)
+		local input = hub.deps.input
+		local code = BindStore.keyCode(keyName)
+		if not code then
+			return keyName or ""
+		end
+		if input.GetStringForKeyCode then
+			local s = input.GetStringForKeyCode(code)
+			if type(s) == "string" and s ~= "" then
+				return s
+			end
+		end
+		return keyName
+	end
+	
+	function Binds.refreshBadge(hub, bindId)
+		local target = hub._bindTargets and hub._bindTargets[bindId]
+		if not target or not target.badge then
+			return
+		end
+		local bind = BindStore.get(hub, bindId)
+		local badge = target.badge
+		local letter = badge:FindFirstChild("Letter")
+		if not bind then
+			badge.Visible = false
+			return
+		end
+		badge.Visible = true
+		if letter then
+			local shown = displayForKey(hub, bind.key)
+			if type(shown) == "string" and shown:match("^[%w%p%s]+$") then
+				shown = string.upper(shown)
+			end
+			letter.Text = shown
+		end
+	end
+	
+	function Binds.refreshAllBadges(hub)
+		if not hub._bindTargets then
+			return
+		end
+		for id in pairs(hub._bindTargets) do
+			Binds.refreshBadge(hub, id)
+		end
+	end
+	
+	--- Attach RMB bind UI + optional badge to the left of the switch/button.
+	-- opts: bindId, kind ("toggle"|"button"), title, row, badgeParent, badgeRightOffset,
+	--       firePress, fireHoldStart, fireHoldEnd, clickTargets (array of GuiObjects for RMB)
+	function Binds.attach(hub, opts)
+		if not bindsEnabled(hub) then
+			return
+		end
+	
+		hub._bindTargets = hub._bindTargets or {}
+		local bindId = opts.bindId
+		local badgeRight = opts.badgeRightOffset or -56
+	
+		local badge = Create("Frame", {
+			Name = "BindBadge",
+			Parent = opts.badgeParent or opts.row,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, badgeRight, 0.5, 0),
+			Size = UDim2.fromOffset(22, 18),
+			BackgroundColor3 = hub.config.colors.control,
+			BorderSizePixel = 0,
+			Visible = false,
+			ZIndex = 6,
+		})
+		Stroke(badge, hub.config.colors.borderSoft, 1, 0.35)
+		Corner(badge, 3)
+		local letter = Create("TextLabel", {
+			Name = "Letter",
+			Parent = badge,
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Text = "",
+			TextColor3 = hub.config.colors.text,
+			TextSize = 11,
+			Font = hub.config.font,
+			ZIndex = 7,
+		})
+	
+		local function onChanged()
+			Binds.refreshAllBadges(hub)
+		end
+	
+		local function openMenu(anchor)
+			BindMenu.open(hub, {
+				bindId = bindId,
+				title = opts.title or "Bind",
+				anchor = anchor or opts.row,
+				onChanged = onChanged,
+			})
+		end
+	
+		hub._bindTargets[bindId] = {
+			kind = opts.kind or "toggle",
+			firePress = opts.firePress,
+			fireHoldStart = opts.fireHoldStart,
+			fireHoldEnd = opts.fireHoldEnd,
+			badge = badge,
+			letter = letter,
+		}
+	
+		local targets = opts.clickTargets or { opts.row }
+		for _, gui in ipairs(targets) do
+			hub._pageMaid:Connect(gui.InputBegan, function(inp)
+				if inp.UserInputType == Enum.UserInputType.MouseButton2 then
+					openMenu(gui)
+				end
+			end)
+		end
+	
+		Binds.refreshBadge(hub, bindId)
+	end
+	
+	function Binds.setup(hub)
+		if not bindsEnabled(hub) then
+			return
+		end
+	
+		hub._bindTargets = hub._bindTargets or {}
+		local held = {} -- [bindId] = true while hold-key down
+		local input = hub.deps.input
+	
+		local function typing()
+			local box = hub.searchBox
+			if box and box:IsFocused() then
+				return true
+			end
+			return false
+		end
+	
+		local function windowAllows()
+			local cfg = bindsCfg(hub)
+			if cfg.whenHidden == false then
+				return hub.window and hub.window.Visible
+			end
+			return true
+		end
+	
+		local function findTargetByKey(keyCode)
+			local name = BindStore.keyName(keyCode)
+			if not name then
+				return nil, nil
+			end
+			for id, _ in pairs(hub._bindTargets or {}) do
+				local bind = BindStore.get(hub, id)
+				if bind and bind.key == name then
+					return id, bind
+				end
+			end
+			-- Also allow binds whose target is temporarily off-page (flag still in store)
+			for id, bind in pairs(BindStore.all(hub)) do
+				if type(bind) == "table" and bind.key == name then
+					return id, BindStore.get(hub, id)
+				end
+			end
+			return nil, nil
+		end
+	
+		local function fireTarget(id, bind, phase)
+			local target = hub._bindTargets and hub._bindTargets[id]
+			if not target then
+				-- Off-page toggle: still flip settings + no UI
+				if phase == "press" or phase == "holdStart" then
+					local flag = id
+					if string.sub(id, 1, 6) == "__btn_" then
+						return
+					end
+					local cur = hub:get(flag)
+					if phase == "holdStart" then
+						if cur ~= true then
+							hub:set(flag, true)
+						end
+					elseif phase == "press" then
+						hub:set(flag, not cur)
+					end
+				elseif phase == "holdEnd" then
+					if string.sub(id, 1, 6) ~= "__btn_" then
+						hub:set(id, false)
+					end
+				end
+				return
+			end
+	
+			if phase == "press" and target.firePress then
+				target.firePress()
+			elseif phase == "holdStart" and target.fireHoldStart then
+				target.fireHoldStart()
+			elseif phase == "holdEnd" and target.fireHoldEnd then
+				target.fireHoldEnd()
+			end
+		end
+	
+		hub._maid:Connect(input.InputBegan, function(inp, _gameProcessed)
+			if hub._destroyed or hub._bindMenuOpen or typing() or not windowAllows() then
+				return
+			end
+			if inp.UserInputType ~= Enum.UserInputType.Keyboard then
+				return
+			end
+			local id, bind = findTargetByKey(inp.KeyCode)
+			if not id or not bind then
+				return
+			end
+			if bind.mode == "hold" then
+				if held[id] then
+					return
+				end
+				held[id] = true
+				fireTarget(id, bind, "holdStart")
+			else
+				fireTarget(id, bind, "press")
+			end
+		end)
+	
+		hub._maid:Connect(input.InputEnded, function(inp)
+			if hub._destroyed then
+				return
+			end
+			if inp.UserInputType ~= Enum.UserInputType.Keyboard then
+				return
+			end
+			local id, bind = findTargetByKey(inp.KeyCode)
+			if not id or not bind or bind.mode ~= "hold" then
+				return
+			end
+			if held[id] then
+				held[id] = nil
+				fireTarget(id, bind, "holdEnd")
+			end
+		end)
+	
+		-- Refresh badge glyphs when layout changes (GetStringForKeyCode follows OS layout)
+		local acc = 0
+		if input.RenderStepped then
+			hub._maid:Connect(input.RenderStepped, function(dt)
+				acc += dt or 0.016
+				if acc < 0.35 then
+					return
+				end
+				acc = 0
+				Binds.refreshAllBadges(hub)
+			end)
+		end
+	end
+	
+	return Binds
 end
 
 __modules["window/Build"] = function(__require)

@@ -19,6 +19,20 @@ function RobloxInput.SetMouseIconEnabled(enabled)
 	UserInputService.MouseIconEnabled = enabled and true or false
 end
 
+function RobloxInput.GetStringForKeyCode(keyCode)
+	if keyCode == nil then
+		return ""
+	end
+	local ok, s = pcall(function()
+		return UserInputService:GetStringForKeyCode(keyCode)
+	end)
+	if ok and type(s) == "string" and s ~= "" then
+		return s
+	end
+	local name = tostring(keyCode):gsub("Enum.KeyCode.", "")
+	return name
+end
+
 RobloxInput.InputBegan = UserInputService.InputBegan
 RobloxInput.InputChanged = UserInputService.InputChanged
 RobloxInput.InputEnded = UserInputService.InputEnded

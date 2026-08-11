@@ -42,6 +42,12 @@ local Defaults = {
 		placeholder = "Search",
 	},
 	startHidden = true,
+	binds = {
+		enabled = true,
+		-- Binds fire even when the hub window is closed
+		whenHidden = true,
+		defaultMode = "press", -- "press" | "hold"
+	},
 	group = {
 		columns = 2,
 		gap = 10,

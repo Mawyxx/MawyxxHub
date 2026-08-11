@@ -5,6 +5,7 @@
 	  GetMouseLocation() -> Vector2
 	  GetMouseLocationGui() -> Vector2  (AbsolutePosition space)
 	  SetMouseIconEnabled(boolean)?
+	  GetStringForKeyCode(keyCode)? -> string  (layout-aware key glyph)
 	  InputBegan, InputChanged, InputEnded : RBXScriptSignal
 	  RenderStepped? : RBXScriptSignal
 

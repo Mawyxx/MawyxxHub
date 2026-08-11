@@ -43,6 +43,12 @@ function FakeInput.new()
 		mouse = Vector2.new(x, y)
 	end
 	function api.SetMouseIconEnabled(_enabled) end
+	function api.GetStringForKeyCode(keyCode)
+		if keyCode == nil then
+			return ""
+		end
+		return tostring(keyCode):gsub("Enum.KeyCode.", "")
+	end
 	api.RenderStepped = makeSignal()
 	return api
 end

@@ -2,6 +2,7 @@
 
 local CreateMod = require(script.Parent.Parent.visual.Create)
 local ColorPicker = require(script.Parent.ColorPicker)
+local Binds = require(script.Parent.Parent.window.Binds)
 
 local Create = CreateMod.Create
 local Corner = CreateMod.Corner
@@ -35,7 +36,7 @@ function ToggleColor.build(hub, element)
 	})
 
 	local label = TextLabel(row, element.label, 14, config.colors.text, config.font)
-	label.Size = UDim2.new(1, -90, 1, 0)
+	label.Size = UDim2.new(1, -118, 1, 0)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 
 	local offColor = config.colors.control or config.colors.surface2
@@ -84,7 +85,7 @@ function ToggleColor.build(hub, element)
 		callback = element.colorCallback,
 	})
 
-	local function apply(newState)
+	local function apply(newState, fireCallback)
 		state = newState and true or false
 		hub.deps.settings.Set(hub.settings, flag, state)
 		hub:tween(toggleBtn, {
@@ -93,21 +94,47 @@ function ToggleColor.build(hub, element)
 		hub:tween(knob, {
 			Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
 		})
+		if fireCallback and element.callback then
+			element.callback(state)
+		end
 	end
 
 	hub._bindings[flag] = {
-		apply = apply,
+		apply = function(v)
+			apply(v, false)
+		end,
 		read = function()
 			return state
 		end,
 	}
 
-	hub._pageMaid:Connect(toggleBtn.MouseButton1Click, function()
-		apply(not state)
-		if element.callback then
-			element.callback(state)
-		end
-	end)
+	local function clickToggle()
+		apply(not state, true)
+	end
+
+	hub._pageMaid:Connect(toggleBtn.MouseButton1Click, clickToggle)
+
+	-- Badge left of swatch+toggle: toggle(50)+gap+swatch(16)+gap+badge
+	Binds.attach(hub, {
+		bindId = flag,
+		kind = "toggle",
+		title = element.label,
+		row = row,
+		badgeParent = row,
+		badgeRightOffset = -86,
+		clickTargets = { row, toggleBtn, label },
+		firePress = clickToggle,
+		fireHoldStart = function()
+			if not state then
+				apply(true, true)
+			end
+		end,
+		fireHoldEnd = function()
+			if state then
+				apply(false, true)
+			end
+		end,
+	})
 
 	return row
 end

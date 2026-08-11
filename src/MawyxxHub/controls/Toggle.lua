@@ -1,4 +1,5 @@
 local CreateMod = require(script.Parent.Parent.visual.Create)
+local Binds = require(script.Parent.Parent.window.Binds)
 
 local Create = CreateMod.Create
 local Corner = CreateMod.Corner
@@ -45,7 +46,6 @@ function Toggle.build(hub, element)
 		PaddingRight = UDim.new(0, 4),
 	})
 	Corner(toggleBtn, 11)
-	-- Soft edge instead of hard stroke
 	Stroke(toggleBtn, config.colors.borderSoft, 1, 0.55)
 
 	local knob = Create("Frame", {
@@ -58,7 +58,7 @@ function Toggle.build(hub, element)
 	})
 	Corner(knob, 20)
 
-	local function apply(newState)
+	local function apply(newState, fireCallback)
 		state = newState and true or false
 		hub.deps.settings.Set(hub.settings, flag, state)
 		hub:tween(toggleBtn, {
@@ -67,21 +67,46 @@ function Toggle.build(hub, element)
 		hub:tween(knob, {
 			Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
 		})
+		if fireCallback and element.callback then
+			element.callback(state)
+		end
 	end
 
 	hub._bindings[flag] = {
-		apply = apply,
+		apply = function(v)
+			apply(v, false)
+		end,
 		read = function()
 			return state
 		end,
 	}
 
-	hub._pageMaid:Connect(toggleBtn.MouseButton1Click, function()
-		apply(not state)
-		if element.callback then
-			element.callback(state)
-		end
-	end)
+	local function clickToggle()
+		apply(not state, true)
+	end
+
+	hub._pageMaid:Connect(toggleBtn.MouseButton1Click, clickToggle)
+
+	Binds.attach(hub, {
+		bindId = flag,
+		kind = "toggle",
+		title = element.label,
+		row = row,
+		badgeParent = row,
+		badgeRightOffset = -56,
+		clickTargets = { row, toggleBtn, label },
+		firePress = clickToggle,
+		fireHoldStart = function()
+			if not state then
+				apply(true, true)
+			end
+		end,
+		fireHoldEnd = function()
+			if state then
+				apply(false, true)
+			end
+		end,
+	})
 
 	return row
 end

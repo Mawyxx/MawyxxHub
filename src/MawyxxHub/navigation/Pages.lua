@@ -51,6 +51,7 @@ function Pages.render(hub)
 
 	hub._pageMaid:DoCleaning()
 	hub._bindings = {}
+	hub._bindTargets = {}
 
 	for _, child in ipairs(hub.pageContainer:GetChildren()) do
 		child:Destroy()
