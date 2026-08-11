@@ -81,15 +81,6 @@ function MawyxxHub.new(userConfig, deps)
 
 	self.settings = self.deps.settings.Bind(self.config.settingsTable)
 
-	do
-		local Version = require(script.Parent.Parent.config.Version)
-		local ver = (Version and Version.id) or "dev"
-		if not rawget(_G, "__MawyxxHub_PrintedVersion") then
-			rawset(_G, "__MawyxxHub_PrintedVersion", ver)
-			print("[MawyxxHub] version", ver, Version.built or "")
-		end
-	end
-
 	WindowBuild.window(self)
 	Drag.setup(self)
 	Shortcuts.setup(self)
