@@ -2596,6 +2596,62 @@ __modules["util/BindStore"] = function(__require)
 		return tostring(keyCode):gsub("Enum.KeyCode.", "")
 	end
 	
+	local MOUSE_TYPES = {
+		[Enum.UserInputType.MouseButton1] = "MouseButton1",
+		[Enum.UserInputType.MouseButton2] = "MouseButton2",
+		[Enum.UserInputType.MouseButton3] = "MouseButton3",
+	}
+	
+	-- MouseButton4/5 exist on some clients
+	pcall(function()
+		MOUSE_TYPES[Enum.UserInputType.MouseButton4] = "MouseButton4"
+		MOUSE_TYPES[Enum.UserInputType.MouseButton5] = "MouseButton5"
+	end)
+	
+	function BindStore.mouseName(userInputType)
+		return MOUSE_TYPES[userInputType]
+	end
+	
+	function BindStore.isMouseToken(token)
+		return type(token) == "string" and string.sub(token, 1, 11) == "MouseButton"
+	end
+	
+	--- Token from an InputObject: KeyCode name or MouseButtonN
+	function BindStore.tokenFromInput(inp)
+		if not inp then
+			return nil
+		end
+		if inp.UserInputType == Enum.UserInputType.Keyboard then
+			if inp.KeyCode == Enum.KeyCode.Unknown then
+				return nil
+			end
+			return BindStore.keyName(inp.KeyCode)
+		end
+		return BindStore.mouseName(inp.UserInputType)
+	end
+	
+	function BindStore.displayLabel(hub, token)
+		if type(token) ~= "string" then
+			return ""
+		end
+		if BindStore.isMouseToken(token) then
+			local n = string.match(token, "MouseButton(%d+)")
+			return n and ("M" .. n) or "M?"
+		end
+		local input = hub and hub.deps and hub.deps.input
+		local code = BindStore.keyCode(token)
+		if code and input and input.GetStringForKeyCode then
+			local s = input.GetStringForKeyCode(code)
+			if type(s) == "string" and s ~= "" then
+				if s:match("^[%w%p%s]+$") then
+					return string.upper(s)
+				end
+				return s
+			end
+		end
+		return token
+	end
+	
 	--- Find bindId that already uses this key (excluding exceptId).
 	function BindStore.findByKey(hub, keyName, exceptId)
 		if type(keyName) ~= "string" then
@@ -2788,13 +2844,14 @@ __modules["window/BindMenu"] = function(__require)
 			pendingMode = "press"
 		end
 		local listening = false
+		local listenArmedAt = 0
 	
 		local overlayGui = Create("ScreenGui", {
 			Name = "MawyxxBindMenu",
 			Parent = hub.deps.guiHost.GetPlayerGui(),
 			ResetOnSpawn = false,
 			IgnoreGuiInset = true,
-			DisplayOrder = 100001,
+			DisplayOrder = 100002,
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		})
 	
@@ -2858,20 +2915,15 @@ __modules["window/BindMenu"] = function(__require)
 	
 		local function refreshKeyLabel()
 			if listening then
-				keyBtn.Text = "Listening..."
+				keyBtn.Text = "Listening... (key or mouse)"
 				keyBtn.TextColor3 = config.colors.purple
 				return
 			end
 			if pendingKey then
-				local code = BindStore.keyCode(pendingKey)
-				local shown = code and input.GetStringForKeyCode and input.GetStringForKeyCode(code) or pendingKey
-				if type(shown) ~= "string" or shown == "" then
-					shown = pendingKey
-				end
-				keyBtn.Text = string.upper(shown)
+				keyBtn.Text = BindStore.displayLabel(hub, pendingKey)
 				keyBtn.TextColor3 = config.colors.text
 			else
-				keyBtn.Text = "Click, then press a key"
+				keyBtn.Text = "Click, then key or mouse"
 				keyBtn.TextColor3 = config.colors.textSoft
 			end
 		end
@@ -3017,6 +3069,7 @@ __modules["window/BindMenu"] = function(__require)
 	
 		table.insert(conns, keyBtn.MouseButton1Click:Connect(function()
 			listening = true
+			listenArmedAt = os.clock() + 0.2
 			refreshKeyLabel()
 		end))
 	
@@ -3055,23 +3108,35 @@ __modules["window/BindMenu"] = function(__require)
 			close()
 		end))
 	
-		table.insert(conns, input.InputBegan:Connect(function(inp, gameProcessed)
+		table.insert(conns, input.InputBegan:Connect(function(inp, _gameProcessed)
 			if not listening then
 				return
 			end
-			if inp.UserInputType ~= Enum.UserInputType.Keyboard then
-				return
-			end
-			local keyCode = inp.KeyCode
-			if keyCode == Enum.KeyCode.Escape then
+			if inp.UserInputType == Enum.UserInputType.Keyboard then
+				local keyCode = inp.KeyCode
+				if keyCode == Enum.KeyCode.Escape then
+					listening = false
+					refreshKeyLabel()
+					return
+				end
+				if isForbidden(keyCode) then
+					return
+				end
+				pendingKey = BindStore.keyName(keyCode)
 				listening = false
 				refreshKeyLabel()
 				return
 			end
-			if isForbidden(keyCode) then
+	
+			local mouseToken = BindStore.mouseName(inp.UserInputType)
+			if not mouseToken then
 				return
 			end
-			pendingKey = BindStore.keyName(keyCode)
+			-- Ignore the click that armed listening (same MouseButton1)
+			if os.clock() < listenArmedAt and mouseToken == "MouseButton1" then
+				return
+			end
+			pendingKey = mouseToken
 			listening = false
 			refreshKeyLabel()
 		end))
@@ -3104,18 +3169,7 @@ __modules["window/Binds"] = function(__require)
 	end
 	
 	local function displayForKey(hub, keyName)
-		local input = hub.deps.input
-		local code = BindStore.keyCode(keyName)
-		if not code then
-			return keyName or ""
-		end
-		if input.GetStringForKeyCode then
-			local s = input.GetStringForKeyCode(code)
-			if type(s) == "string" and s ~= "" then
-				return s
-			end
-		end
-		return keyName
+		return BindStore.displayLabel(hub, keyName)
 	end
 	
 	function Binds.refreshBadge(hub, bindId)
@@ -3132,11 +3186,7 @@ __modules["window/Binds"] = function(__require)
 		end
 		badge.Visible = true
 		if letter then
-			local shown = displayForKey(hub, bind.key)
-			if type(shown) == "string" and shown:match("^[%w%p%s]+$") then
-				shown = string.upper(shown)
-			end
-			letter.Text = shown
+			letter.Text = displayForKey(hub, bind.key)
 		end
 	end
 	
@@ -3245,20 +3295,18 @@ __modules["window/Binds"] = function(__require)
 			return true
 		end
 	
-		local function findTargetByKey(keyCode)
-			local name = BindStore.keyName(keyCode)
-			if not name then
+		local function findTargetByToken(token)
+			if type(token) ~= "string" then
 				return nil, nil
 			end
 			for id, _ in pairs(hub._bindTargets or {}) do
 				local bind = BindStore.get(hub, id)
-				if bind and bind.key == name then
+				if bind and bind.key == token then
 					return id, bind
 				end
 			end
-			-- Also allow binds whose target is temporarily off-page (flag still in store)
 			for id, bind in pairs(BindStore.all(hub)) do
-				if type(bind) == "table" and bind.key == name then
+				if type(bind) == "table" and bind.key == token then
 					return id, BindStore.get(hub, id)
 				end
 			end
@@ -3268,7 +3316,6 @@ __modules["window/Binds"] = function(__require)
 		local function fireTarget(id, bind, phase)
 			local target = hub._bindTargets and hub._bindTargets[id]
 			if not target then
-				-- Off-page toggle: still flip settings + no UI
 				if phase == "press" or phase == "holdStart" then
 					local flag = id
 					if string.sub(id, 1, 6) == "__btn_" then
@@ -3299,14 +3346,15 @@ __modules["window/Binds"] = function(__require)
 			end
 		end
 	
-		hub._maid:Connect(input.InputBegan, function(inp, _gameProcessed)
+		local function handleBegan(inp)
 			if hub._destroyed or hub._bindMenuOpen or typing() or not windowAllows() then
 				return
 			end
-			if inp.UserInputType ~= Enum.UserInputType.Keyboard then
+			local token = BindStore.tokenFromInput(inp)
+			if not token then
 				return
 			end
-			local id, bind = findTargetByKey(inp.KeyCode)
+			local id, bind = findTargetByToken(token)
 			if not id or not bind then
 				return
 			end
@@ -3319,16 +3367,17 @@ __modules["window/Binds"] = function(__require)
 			else
 				fireTarget(id, bind, "press")
 			end
-		end)
+		end
 	
-		hub._maid:Connect(input.InputEnded, function(inp)
+		local function handleEnded(inp)
 			if hub._destroyed then
 				return
 			end
-			if inp.UserInputType ~= Enum.UserInputType.Keyboard then
+			local token = BindStore.tokenFromInput(inp)
+			if not token then
 				return
 			end
-			local id, bind = findTargetByKey(inp.KeyCode)
+			local id, bind = findTargetByToken(token)
 			if not id or not bind or bind.mode ~= "hold" then
 				return
 			end
@@ -3336,7 +3385,10 @@ __modules["window/Binds"] = function(__require)
 				held[id] = nil
 				fireTarget(id, bind, "holdEnd")
 			end
-		end)
+		end
+	
+		hub._maid:Connect(input.InputBegan, handleBegan)
+		hub._maid:Connect(input.InputEnded, handleEnded)
 	
 		-- Refresh badge glyphs when layout changes (GetStringForKeyCode follows OS layout)
 		local acc = 0
@@ -3676,7 +3728,7 @@ __modules["window/CustomCursor"] = function(__require)
 			Parent = guiHost.GetPlayerGui(),
 			ResetOnSpawn = false,
 			IgnoreGuiInset = true,
-			DisplayOrder = 100001,
+			DisplayOrder = 2000000,
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		})
 		hub._maid:Give(gui)

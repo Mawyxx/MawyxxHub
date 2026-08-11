@@ -19,18 +19,7 @@ local function bindsEnabled(hub)
 end
 
 local function displayForKey(hub, keyName)
-	local input = hub.deps.input
-	local code = BindStore.keyCode(keyName)
-	if not code then
-		return keyName or ""
-	end
-	if input.GetStringForKeyCode then
-		local s = input.GetStringForKeyCode(code)
-		if type(s) == "string" and s ~= "" then
-			return s
-		end
-	end
-	return keyName
+	return BindStore.displayLabel(hub, keyName)
 end
 
 function Binds.refreshBadge(hub, bindId)
@@ -47,11 +36,7 @@ function Binds.refreshBadge(hub, bindId)
 	end
 	badge.Visible = true
 	if letter then
-		local shown = displayForKey(hub, bind.key)
-		if type(shown) == "string" and shown:match("^[%w%p%s]+$") then
-			shown = string.upper(shown)
-		end
-		letter.Text = shown
+		letter.Text = displayForKey(hub, bind.key)
 	end
 end
 
@@ -160,20 +145,18 @@ function Binds.setup(hub)
 		return true
 	end
 
-	local function findTargetByKey(keyCode)
-		local name = BindStore.keyName(keyCode)
-		if not name then
+	local function findTargetByToken(token)
+		if type(token) ~= "string" then
 			return nil, nil
 		end
 		for id, _ in pairs(hub._bindTargets or {}) do
 			local bind = BindStore.get(hub, id)
-			if bind and bind.key == name then
+			if bind and bind.key == token then
 				return id, bind
 			end
 		end
-		-- Also allow binds whose target is temporarily off-page (flag still in store)
 		for id, bind in pairs(BindStore.all(hub)) do
-			if type(bind) == "table" and bind.key == name then
+			if type(bind) == "table" and bind.key == token then
 				return id, BindStore.get(hub, id)
 			end
 		end
@@ -183,7 +166,6 @@ function Binds.setup(hub)
 	local function fireTarget(id, bind, phase)
 		local target = hub._bindTargets and hub._bindTargets[id]
 		if not target then
-			-- Off-page toggle: still flip settings + no UI
 			if phase == "press" or phase == "holdStart" then
 				local flag = id
 				if string.sub(id, 1, 6) == "__btn_" then
@@ -214,14 +196,15 @@ function Binds.setup(hub)
 		end
 	end
 
-	hub._maid:Connect(input.InputBegan, function(inp, _gameProcessed)
+	local function handleBegan(inp)
 		if hub._destroyed or hub._bindMenuOpen or typing() or not windowAllows() then
 			return
 		end
-		if inp.UserInputType ~= Enum.UserInputType.Keyboard then
+		local token = BindStore.tokenFromInput(inp)
+		if not token then
 			return
 		end
-		local id, bind = findTargetByKey(inp.KeyCode)
+		local id, bind = findTargetByToken(token)
 		if not id or not bind then
 			return
 		end
@@ -234,16 +217,17 @@ function Binds.setup(hub)
 		else
 			fireTarget(id, bind, "press")
 		end
-	end)
+	end
 
-	hub._maid:Connect(input.InputEnded, function(inp)
+	local function handleEnded(inp)
 		if hub._destroyed then
 			return
 		end
-		if inp.UserInputType ~= Enum.UserInputType.Keyboard then
+		local token = BindStore.tokenFromInput(inp)
+		if not token then
 			return
 		end
-		local id, bind = findTargetByKey(inp.KeyCode)
+		local id, bind = findTargetByToken(token)
 		if not id or not bind or bind.mode ~= "hold" then
 			return
 		end
@@ -251,7 +235,10 @@ function Binds.setup(hub)
 			held[id] = nil
 			fireTarget(id, bind, "holdEnd")
 		end
-	end)
+	end
+
+	hub._maid:Connect(input.InputBegan, handleBegan)
+	hub._maid:Connect(input.InputEnded, handleEnded)
 
 	-- Refresh badge glyphs when layout changes (GetStringForKeyCode follows OS layout)
 	local acc = 0

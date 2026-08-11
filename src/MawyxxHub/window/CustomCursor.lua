@@ -37,7 +37,7 @@ function CustomCursor.setup(hub)
 		Parent = guiHost.GetPlayerGui(),
 		ResetOnSpawn = false,
 		IgnoreGuiInset = true,
-		DisplayOrder = 100001,
+		DisplayOrder = 2000000,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	})
 	hub._maid:Give(gui)

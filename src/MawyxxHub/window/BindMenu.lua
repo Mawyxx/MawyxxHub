@@ -37,13 +37,14 @@ function BindMenu.open(hub, opts)
 		pendingMode = "press"
 	end
 	local listening = false
+	local listenArmedAt = 0
 
 	local overlayGui = Create("ScreenGui", {
 		Name = "MawyxxBindMenu",
 		Parent = hub.deps.guiHost.GetPlayerGui(),
 		ResetOnSpawn = false,
 		IgnoreGuiInset = true,
-		DisplayOrder = 100001,
+		DisplayOrder = 100002,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	})
 
@@ -107,20 +108,15 @@ function BindMenu.open(hub, opts)
 
 	local function refreshKeyLabel()
 		if listening then
-			keyBtn.Text = "Listening..."
+			keyBtn.Text = "Listening... (key or mouse)"
 			keyBtn.TextColor3 = config.colors.purple
 			return
 		end
 		if pendingKey then
-			local code = BindStore.keyCode(pendingKey)
-			local shown = code and input.GetStringForKeyCode and input.GetStringForKeyCode(code) or pendingKey
-			if type(shown) ~= "string" or shown == "" then
-				shown = pendingKey
-			end
-			keyBtn.Text = string.upper(shown)
+			keyBtn.Text = BindStore.displayLabel(hub, pendingKey)
 			keyBtn.TextColor3 = config.colors.text
 		else
-			keyBtn.Text = "Click, then press a key"
+			keyBtn.Text = "Click, then key or mouse"
 			keyBtn.TextColor3 = config.colors.textSoft
 		end
 	end
@@ -266,6 +262,7 @@ function BindMenu.open(hub, opts)
 
 	table.insert(conns, keyBtn.MouseButton1Click:Connect(function()
 		listening = true
+		listenArmedAt = os.clock() + 0.2
 		refreshKeyLabel()
 	end))
 
@@ -304,23 +301,35 @@ function BindMenu.open(hub, opts)
 		close()
 	end))
 
-	table.insert(conns, input.InputBegan:Connect(function(inp, gameProcessed)
+	table.insert(conns, input.InputBegan:Connect(function(inp, _gameProcessed)
 		if not listening then
 			return
 		end
-		if inp.UserInputType ~= Enum.UserInputType.Keyboard then
-			return
-		end
-		local keyCode = inp.KeyCode
-		if keyCode == Enum.KeyCode.Escape then
+		if inp.UserInputType == Enum.UserInputType.Keyboard then
+			local keyCode = inp.KeyCode
+			if keyCode == Enum.KeyCode.Escape then
+				listening = false
+				refreshKeyLabel()
+				return
+			end
+			if isForbidden(keyCode) then
+				return
+			end
+			pendingKey = BindStore.keyName(keyCode)
 			listening = false
 			refreshKeyLabel()
 			return
 		end
-		if isForbidden(keyCode) then
+
+		local mouseToken = BindStore.mouseName(inp.UserInputType)
+		if not mouseToken then
 			return
 		end
-		pendingKey = BindStore.keyName(keyCode)
+		-- Ignore the click that armed listening (same MouseButton1)
+		if os.clock() < listenArmedAt and mouseToken == "MouseButton1" then
+			return
+		end
+		pendingKey = mouseToken
 		listening = false
 		refreshKeyLabel()
 	end))
