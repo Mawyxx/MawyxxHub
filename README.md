@@ -8,13 +8,14 @@ Repo: https://github.com/Mawyxx/MawyxxHub
 
 ## Use the framework (this is all you need)
 
-One file — no versions, no prefixes:
+**Important:** executors cache `HttpGet`. Always bust the cache or you will keep an old build.
 
 ```lua
 local ls = loadstring or load
 local MawyxxHub = ls(game:HttpGet(
-	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua"
+	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/MawyxxHub.lua?v=" .. tostring(tick())
 ))()
+print(MawyxxHub.VERSION) -- must print a fresh git SHA, e.g. 299adc2
 
 local hub = MawyxxHub.new({ startHidden = true })
 
@@ -25,6 +26,15 @@ hub:addToggle(g, "Enabled", "aim_on", false, function(on)
 	-- your logic
 end)
 hub:endUpdate()
+```
+
+Hard pin (no cache surprises):
+
+```lua
+-- replace COMMIT with the SHA from github.com/Mawyxx/MawyxxHub/commits/main
+local MawyxxHub = (loadstring or load)(game:HttpGet(
+	"https://raw.githubusercontent.com/Mawyxx/MawyxxHub/COMMIT/dist/MawyxxHub.lua"
+))()
 ```
 
 **RightControl** opens/closes the menu (change with `toggleKey` in config).

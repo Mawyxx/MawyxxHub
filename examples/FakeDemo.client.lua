@@ -2,7 +2,7 @@
 local ls = loadstring or load
 assert(ls, "[MawyxxHub] no loadstring/load in this executor")
 
-local url = "https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo.lua"
+local url = "https://raw.githubusercontent.com/Mawyxx/MawyxxHub/main/dist/demo.lua?v=" .. tostring(tick())
 local ok, src = pcall(function()
 	return game:HttpGet(url)
 end)

@@ -5,4 +5,9 @@
 		local hub = MawyxxHub.new(config?, deps?)
 ]]
 
-return require(script.hub.MawyxxHub)
+local Hub = require(script.hub.MawyxxHub)
+local Version = require(script.config.Version)
+
+Hub.VERSION = Version.id or "dev"
+
+return Hub
